@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	_ "first_aid_companion/controllers"
+	_ "first_aid_companion/services"
 	"fmt"
 	"net/http"
 
