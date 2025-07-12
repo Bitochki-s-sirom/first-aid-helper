@@ -265,6 +265,12 @@ func (us *UserService) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		user.SNILS = userUpdates.Snils
 	}
 
+	if err := us.DB.UpdateUser(user); err != nil {
+		log.Printf("Error updating user data in Me: %v", err)
+		WriteError(w, 500, err.Error())
+		return
+	}
+
 	medCard, err := us.CardService.DB.GetCardByUserID(user.ID)
 	if err != nil {
 		log.Printf("Error getting medical card in Me: %v", err)
