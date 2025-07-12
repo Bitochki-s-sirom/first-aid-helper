@@ -9,6 +9,9 @@ type User struct {
 	Name         string
 	Email        string
 	PasswordHash string
+	SNILS        string
+	Passport     string
+	Address      string
 	Groups       []Group `gorm:"many2many:user_groups;"`
 	MedicalCard  MedicalCard
 	Chats        []Chat
