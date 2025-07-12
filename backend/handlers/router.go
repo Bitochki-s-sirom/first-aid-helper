@@ -29,4 +29,5 @@ func AddRoutes(r *mux.Router, service *services.DBService) {
 	authRoute := r.PathPrefix("/auth").Subrouter()
 	authRoute.Use(RequireUserMiddleware)
 	authRoute.HandleFunc("/me", userService.Me).Methods("GET")
+	authRoute.HandleFunc("/me", userService.UpdateMe).Methods("POST")
 }
