@@ -5,11 +5,9 @@ class LocalStorage {
   static const String _authTokenKey = 'auth_token';
   static const String _userDataKey = 'user_data';
 
-  static Future<void> saveAuthData(
-      String token, Map<String, dynamic> userData) async {
+  static Future<void> saveAuthData(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_authTokenKey, token);
-    await prefs.setString(_userDataKey, jsonEncode(userData));
   }
 
   static Future<Map<String, dynamic>?> getAuthData() async {
