@@ -5,7 +5,19 @@ definitions:
       status:
         type: integer
     type: object
-  controllers.DocumentCreation:
+  controllers.User:
+    properties:
+      email:
+        example: Aspirin@asperinovish.ru
+        type: string
+      name:
+        example: Aspirin
+        type: string
+      password:
+        example: Aspirin
+        type: string
+    type: object
+  models.Document:
     properties:
       date:
         example: "2025-07-12T23:45:00Z"
@@ -22,67 +34,25 @@ definitions:
       type:
         type: string
     type: object
-  controllers.DrugCreation:
+  models.Drug:
     properties:
+      amount:
+        type: string
       description:
+        type: string
+      dose:
         type: string
       expiry:
         example: "2025-07-12T23:45:00Z"
         type: string
       location:
         type: string
-      name:
-        type: string
-      type:
-        type: string
-    type: object
-  controllers.User:
-    properties:
-      email:
-        example: Aspirin@asperinovish.ru
-        type: string
-      name:
-        example: Aspirin
-        type: string
-      password:
-        example: Aspirin
-        type: string
-    type: object
-  models.Document:
-    properties:
-      date:
-        type: string
-      doctor:
-        type: string
-      fileData:
-        items:
-          type: integer
-        type: array
-      id:
-        type: integer
-      name:
-        type: string
-      type:
-        type: string
-      userID:
-        type: integer
-    type: object
-  models.Drug:
-    properties:
-      description:
-        type: string
-      expiry:
-        type: string
-      id:
-        type: integer
-      location:
+      manufacturer:
         type: string
       name:
         type: string
       type:
         type: string
-      userId:
-        type: integer
     type: object
 info:
   contact: {}
@@ -116,7 +86,7 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/controllers.DocumentCreation'
+          $ref: '#/definitions/models.Document'
       produces:
       - application/json
       responses:
@@ -160,7 +130,7 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/controllers.DrugCreation'
+          $ref: '#/definitions/models.Drug'
       produces:
       - application/json
       responses:

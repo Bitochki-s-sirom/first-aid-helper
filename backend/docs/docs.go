@@ -70,7 +70,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.DocumentCreation"
+                            "$ref": "#/definitions/models.Document"
                         }
                     }
                 ],
@@ -142,7 +142,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.DrugCreation"
+                            "$ref": "#/definitions/models.Drug"
                         }
                     }
                 ],
@@ -261,7 +261,24 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.DocumentCreation": {
+        "controllers.User": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "Aspirin@asperinovish.ru"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Aspirin"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "Aspirin"
+                }
+            }
+        },
+        "models.Document": {
             "type": "object",
             "properties": {
                 "date": {
@@ -286,10 +303,16 @@ const docTemplate = `{
                 }
             }
         },
-        "controllers.DrugCreation": {
+        "models.Drug": {
             "type": "object",
             "properties": {
+                "amount": {
+                    "type": "string"
+                },
                 "description": {
+                    "type": "string"
+                },
+                "dose": {
                     "type": "string"
                 },
                 "expiry": {
@@ -299,73 +322,7 @@ const docTemplate = `{
                 "location": {
                     "type": "string"
                 },
-                "name": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
-        "controllers.User": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string",
-                    "example": "Aspirin@asperinovish.ru"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Aspirin"
-                },
-                "password": {
-                    "type": "string",
-                    "example": "Aspirin"
-                }
-            }
-        },
-        "models.Document": {
-            "type": "object",
-            "properties": {
-                "date": {
-                    "type": "string"
-                },
-                "doctor": {
-                    "type": "string"
-                },
-                "fileData": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "userID": {
-                    "type": "integer"
-                }
-            }
-        },
-        "models.Drug": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "expiry": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "location": {
+                "manufacturer": {
                     "type": "string"
                 },
                 "name": {
@@ -373,9 +330,6 @@ const docTemplate = `{
                 },
                 "type": {
                     "type": "string"
-                },
-                "userId": {
-                    "type": "integer"
                 }
             }
         }

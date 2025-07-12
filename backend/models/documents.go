@@ -7,13 +7,13 @@ import (
 )
 
 type Document struct {
-	ID       uint `gorm:"primaryKey"`
-	UserID   uint
-	Name     string
-	Type     string
-	Date     time.Time
-	Doctor   string
-	FileData []byte
+	ID       uint      `gorm:"primaryKey" json:"-"`
+	UserID   uint      `json:"-"`
+	Name     string    `json:"name"`
+	Type     string    `json:"type"`
+	Date     time.Time `json:"date" example:"2025-07-12T23:45:00Z"`
+	Doctor   string    `json:"doctor"`
+	FileData []byte    `json:"file_data"` // base64-encoded in JSON
 }
 
 type DocumentGorm struct {
@@ -24,15 +24,7 @@ func NewDocumentGorm(db *gorm.DB) *DocumentGorm {
 	return &DocumentGorm{DB: db}
 }
 
-func (dg *DocumentGorm) CreateDocument(name, docType, doctor string, date time.Time, fileData []byte, userId uint) (*Document, error) {
-	doc := &Document{
-		Name:     name,
-		Type:     docType,
-		Date:     date,
-		Doctor:   doctor,
-		FileData: fileData,
-		UserID:   userId,
-	}
+func (dg *DocumentGorm) CreateDocument(doc *Document) (*Document, error) {
 	if err := dg.DB.Table("documents").Create(doc).Error; err != nil {
 		return nil, err
 	}
