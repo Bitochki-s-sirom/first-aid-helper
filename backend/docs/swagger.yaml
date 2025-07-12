@@ -14,9 +14,41 @@ definitions:
       password:
         type: string
     type: object
+  models.Drug:
+    properties:
+      description:
+        type: string
+      expiry:
+        type: string
+      id:
+        type: integer
+      location:
+        type: string
+      type:
+        type: string
+    type: object
 info:
   contact: {}
 paths:
+  /auth/drugs:
+    get:
+      consumes:
+      - application/json
+      description: Returns all drugs in json format
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Drug'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get all drugs
+      tags:
+      - drugs
   /login:
     post:
       consumes:
@@ -76,4 +108,9 @@ paths:
       summary: Sign up a new user
       tags:
       - users
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"
