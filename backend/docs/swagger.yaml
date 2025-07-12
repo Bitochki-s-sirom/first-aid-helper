@@ -1,0 +1,44 @@
+definitions:
+  controllers.User:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Детальное описание
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.User'
+      summary: Описание
+      tags:
+      - users
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: Детальное описание
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.User'
+      summary: Описание
+      tags:
+      - users
+swagger: "2.0"
