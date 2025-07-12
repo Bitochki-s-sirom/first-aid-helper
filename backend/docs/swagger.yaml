@@ -1,4 +1,10 @@
 definitions:
+  controllers.APIResponse:
+    properties:
+      data: {}
+      status:
+        type: integer
+    type: object
   controllers.User:
     properties:
       email:
@@ -8,37 +14,103 @@ definitions:
       password:
         type: string
     type: object
+  models.Drug:
+    properties:
+      description:
+        type: string
+      expiry:
+        type: string
+      id:
+        type: integer
+      location:
+        type: string
+      type:
+        type: string
+    type: object
 info:
   contact: {}
 paths:
-  /login:
-    post:
+  /auth/drugs:
+    get:
       consumes:
       - application/json
-      description: Детальное описание
+      description: Returns all drugs in json format
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.User'
-      summary: Описание
+            items:
+              $ref: '#/definitions/models.Drug'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get all drugs
+      tags:
+      - drugs
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user and returns a JWT
+      parameters:
+      - description: login body
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      summary: Log in a user
+      tags:
+      - users
+  /me:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves the authenticated user's details
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      summary: Get current user
       tags:
       - users
   /signup:
     post:
       consumes:
       - application/json
-      description: Детальное описание
+      description: Creates a new user account
+      parameters:
+      - description: signup body
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.User'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.User'
-      summary: Описание
+            $ref: '#/definitions/controllers.APIResponse'
+      summary: Sign up a new user
       tags:
       - users
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

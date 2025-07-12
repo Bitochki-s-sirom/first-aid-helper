@@ -12,8 +12,8 @@ type User struct {
 	SNILS        string
 	Passport     string
 	Address      string
-	Groups       []Group `gorm:"many2many:user_groups;"`
-	MedicalCard  MedicalCard
+	Groups       []Group     `gorm:"many2many:user_groups;"`
+	MedicalCard  MedicalCard `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Chats        []Chat
 	Documents    []Document
 }
@@ -53,4 +53,8 @@ func (ug *UserGorm) GetUserByEmail(email string) (*User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (ug *UserGorm) UpdateUser(user *User) error {
+	return ug.DB.Table("users").Save(user).Error
 }

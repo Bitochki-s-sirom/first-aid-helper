@@ -15,9 +15,40 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/auth/drugs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all drugs in json format",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "drugs"
+                ],
+                "summary": "Get all drugs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Drug"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
-                "description": "Детальное описание",
+                "description": "Authenticates a user and returns a JWT",
                 "consumes": [
                     "application/json"
                 ],
@@ -27,12 +58,46 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Описание",
+                "summary": "Log in a user",
+                "parameters": [
+                    {
+                        "description": "login body",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.User"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.User"
+                            "$ref": "#/definitions/controllers.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/me": {
+            "get": {
+                "description": "Retrieves the authenticated user's details",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get current user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.APIResponse"
                         }
                     }
                 }
@@ -40,7 +105,7 @@ const docTemplate = `{
         },
         "/signup": {
             "post": {
-                "description": "Детальное описание",
+                "description": "Creates a new user account",
                 "consumes": [
                     "application/json"
                 ],
@@ -50,12 +115,23 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Описание",
+                "summary": "Sign up a new user",
+                "parameters": [
+                    {
+                        "description": "signup body",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.User"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.User"
+                            "$ref": "#/definitions/controllers.APIResponse"
                         }
                     }
                 }
@@ -63,6 +139,15 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "controllers.APIResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
         "controllers.User": {
             "type": "object",
             "properties": {
@@ -76,6 +161,33 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "models.Drug": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "expiry": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`
