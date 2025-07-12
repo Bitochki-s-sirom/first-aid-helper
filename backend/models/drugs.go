@@ -8,10 +8,12 @@ import (
 
 type Drug struct {
 	ID          uint `gorm:"primaryKey"`
+	Name        string
 	Type        string
 	Description string
 	Expiry      time.Time
 	Location    string
+	UserId      uint
 }
 
 type DrugGorm struct {
@@ -22,21 +24,15 @@ func NewDrugGorm(db *gorm.DB) *DrugGorm {
 	return &DrugGorm{DB: db}
 }
 
-func (dg *DrugGorm) CreateDrug(args map[string]interface{}) (*Drug, error) {
+func (dg *DrugGorm) CreateDrug(name, drugType, desc, loc string, exp time.Time, userId uint) (*Drug, error) {
 
-	drug := &Drug{}
-
-	if val, ok := args["Type"].(string); ok {
-		drug.Type = val
-	}
-	if val, ok := args["Description"].(string); ok {
-		drug.Description = val
-	}
-	if val, ok := args["Expiry"].(time.Time); ok {
-		drug.Expiry = val
-	}
-	if val, ok := args["Location"].(string); ok {
-		drug.Location = val
+	drug := &Drug{
+		Name:        name,
+		Type:        drugType,
+		Description: desc,
+		Expiry:      exp,
+		Location:    loc,
+		UserId:      userId,
 	}
 
 	if err := dg.DB.Table("drugs").Create(drug).Error; err != nil {
@@ -79,9 +75,9 @@ func (dg *DrugGorm) UpdateDrug(id int, args map[string]interface{}) (*Drug, erro
 	return drug, nil
 }
 
-func (dg *DrugGorm) GetAllDrugs() ([]Drug, error) {
+func (dg *DrugGorm) GetDrugsByUserId(id uint) ([]Drug, error) {
 	var drugs []Drug
-	err := dg.DB.Table("drugs").Find(&drugs).Error
+	err := dg.DB.Table("drugs").Where("user_id = ?", id).Find(&drugs).Error
 	if err != nil {
 		return nil, err
 	}

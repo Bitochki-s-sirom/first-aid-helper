@@ -5,13 +5,30 @@ definitions:
       status:
         type: integer
     type: object
-  controllers.User:
+  controllers.DrugCreation:
     properties:
-      email:
+      description:
+        type: string
+      expiry:
+        example: "2025-07-12T23:45:00Z"
+        type: string
+      location:
         type: string
       name:
         type: string
+      type:
+        type: string
+    type: object
+  controllers.User:
+    properties:
+      email:
+        example: Aspirin@asperinovish.ru
+        type: string
+      name:
+        example: Aspirin
+        type: string
       password:
+        example: Aspirin
         type: string
     type: object
   models.Drug:
@@ -24,8 +41,12 @@ definitions:
         type: integer
       location:
         type: string
+      name:
+        type: string
       type:
         type: string
+      userId:
+        type: integer
     type: object
 info:
   contact: {}
@@ -47,6 +68,31 @@ paths:
       security:
       - BearerAuth: []
       summary: Get all drugs
+      tags:
+      - drugs
+  /auth/drugs/add:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: login body
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.DrugCreation'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/controllers.APIResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Add one drug
       tags:
       - drugs
   /login:

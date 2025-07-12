@@ -35,6 +35,47 @@
                 }
             }
         },
+        "/auth/drugs/add": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "drugs"
+                ],
+                "summary": "Add one drug",
+                "parameters": [
+                    {
+                        "description": "login body",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.DrugCreation"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/controllers.APIResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
                 "description": "Authenticates a user and returns a JWT",
@@ -137,17 +178,41 @@
                 }
             }
         },
-        "controllers.User": {
+        "controllers.DrugCreation": {
             "type": "object",
             "properties": {
-                "email": {
+                "description": {
+                    "type": "string"
+                },
+                "expiry": {
+                    "type": "string",
+                    "example": "2025-07-12T23:45:00Z"
+                },
+                "location": {
                     "type": "string"
                 },
                 "name": {
                     "type": "string"
                 },
-                "password": {
+                "type": {
                     "type": "string"
+                }
+            }
+        },
+        "controllers.User": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "Aspirin@asperinovish.ru"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Aspirin"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "Aspirin"
                 }
             }
         },
@@ -166,8 +231,14 @@
                 "location": {
                     "type": "string"
                 },
+                "name": {
+                    "type": "string"
+                },
                 "type": {
                     "type": "string"
+                },
+                "userId": {
+                    "type": "integer"
                 }
             }
         }

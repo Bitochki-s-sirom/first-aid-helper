@@ -57,8 +57,8 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// Database connection
-	// dsn := `host= 82.202.138.91 user=postgres password=h,RVN/G&iK£kkB75s>C"%Q9}1F;nNz dbname=firstaid port=5432 sslmode=disable`
-	dsn := `host=localhost user=postgres password=1121 dbname=firstaid port=5432 sslmode=disable`
+	dsn := `host= 82.202.138.91 user=postgres password=h,RVN/G&iK£kkB75s>C"%Q9}1F;nNz dbname=firstaid port=5432 sslmode=disable`
+	// dsn := `host=localhost user=postgres password=1121 dbname=firstaid port=5432 sslmode=disable`
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
