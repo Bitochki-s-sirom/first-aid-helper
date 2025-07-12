@@ -9,12 +9,14 @@ import (
 )
 
 type DBService struct {
-	DB *gorm.DB
+	DB     *gorm.DB
+	UserDB *models.UserGorm
 }
 
 func NewDBService(db *gorm.DB) *DBService {
 	return &DBService{
-		DB: db,
+		DB:     db,
+		UserDB: models.NewUserGorm(db),
 	}
 }
 

@@ -19,6 +19,10 @@ type UserGorm struct {
 	DB *gorm.DB
 }
 
+func NewUserGorm(db *gorm.DB) *UserGorm {
+	return &UserGorm{DB: db}
+}
+
 func (ug *UserGorm) CreateUser(name, email, password_hash string) (*User, error) {
 	user := &User{
 		Name:         name,
