@@ -3,9 +3,12 @@ package controllers
 import (
 	"errors"
 	"first_aid_companion/models"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strconv"
+
+	"gorm.io/gorm"
 )
 
 type User struct {
@@ -53,8 +56,14 @@ func (us *UserService) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := us.DB.GetUserByEmail(newUser.Email)
-	if user != nil && err != nil {
+	fmt.Print(user)
+	if err == nil && user != nil {
 		WriteError(w, 409, "user already exists")
+		return
+	}
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		WriteError(w, 500, "database error")
 		return
 	}
 
@@ -85,7 +94,7 @@ func (us *UserService) SignUp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (us *UserService) LogIn(w http.ResponseWriter, r *http.Request) {
-	user := User{}
+	user := &User{}
 
 	if err := ParseJSON(r, user); err != nil {
 		WriteError(w, 500, err.Error())
