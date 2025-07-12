@@ -1,7 +1,6 @@
 package models
 
 import (
-	_ "gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -9,25 +8,34 @@ type Chat struct {
 	ID       uint `gorm:"primaryKey"`
 	UserID   uint
 	Title    string
-	Messages []Message `gorm:"one2many:messagess;"`
+	Messages []Message `gorm:"foreignKey:ChatID"`
 }
 
 type ChatGorm struct {
 	db *gorm.DB
 }
 
-func (cg *ChatGorm) CreateChat(userID int, title string) error {
-	chat := &Chat{
-		UserID: uint(userID),
-		Title:  title,
-	}
-	return cg.db.Table("chats").Create(chat).Error
+func NewChatGorm(db *gorm.DB) *ChatGorm {
+	return &ChatGorm{db: db}
 }
 
-func (cg *ChatGorm) GetChat(chatID int) (*Chat, error) {
-	var chat Chat
-	if err := cg.db.Table("chats").Where("id = ?", chatID).First(&chat).Error; err != nil {
-		return nil, err
+func (cg *ChatGorm) CreateChat(userID uint, title string) (*Chat, error) {
+	chat := &Chat{
+		UserID: userID,
+		Title:  title,
 	}
-	return &chat, nil
+	err := cg.db.Create(chat).Error
+	return chat, err
+}
+
+func (cg *ChatGorm) GetChatByID(chatID uint) (*Chat, error) {
+	var chat Chat
+	err := cg.db.Preload("Messages").First(&chat, chatID).Error
+	return &chat, err
+}
+
+func (cg *ChatGorm) GetUserChats(userID uint) ([]Chat, error) {
+	var chats []Chat
+	err := cg.db.Where("user_id = ?", userID).Find(&chats).Error
+	return chats, err
 }
