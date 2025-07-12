@@ -104,6 +104,20 @@ func (us *UserService) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	medCard, err := us.CardService.CreateCard(createdUser.ID)
+	if err != nil {
+		log.Printf("Error creating Medical card in SignUp: %v", err)
+		WriteError(w, 500, err.Error())
+		return
+	}
+
+	createdUser.MedicalCard = *medCard
+	if err := us.DB.UpdateUser(createdUser); err != nil {
+		log.Printf("Error assigning Medical card in SignUp: %v", err)
+		WriteError(w, 500, err.Error())
+		return
+	}
+
 	idAsString := strconv.Itoa(int(createdUser.ID))
 
 	token, err := GenerateJWT(idAsString, createdUser.Email)

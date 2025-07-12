@@ -12,8 +12,8 @@ type User struct {
 	SNILS        string
 	Passport     string
 	Address      string
-	Groups       []Group `gorm:"many2many:user_groups;"`
-	MedicalCard  MedicalCard
+	Groups       []Group     `gorm:"many2many:user_groups;"`
+	MedicalCard  MedicalCard `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Chats        []Chat
 	Documents    []Document
 }
