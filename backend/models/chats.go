@@ -26,7 +26,7 @@ func (cg *ChatGorm) CreateChat(userID int, title string) error {
 
 func (cg *ChatGorm) GetChat(chatID int) (*Chat, error) {
 	var chat Chat
-	if err := cg.db.Table("chats").Where("id = ?", chatID).Scan(&chat).Error; err != nil {
+	if err := cg.db.Table("chats").Where("id = ?", chatID).First(&chat).Error; err != nil {
 		return nil, err
 	}
 	return &chat, nil

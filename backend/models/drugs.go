@@ -44,7 +44,7 @@ func (dg *DrugGorm) CreateDrug(args map[string]interface{}) (*Drug, error) {
 
 func (dg *DrugGorm) GetDrugById(id int) (*Drug, error) {
 	var drug Drug
-	if err := dg.DB.Table("drugs").Where("id = ?", id).Scan(&drug).Error; err != nil {
+	if err := dg.DB.Table("drugs").Where("id = ?", id).First(&drug).Error; err != nil {
 		return nil, err
 	}
 	return &drug, nil

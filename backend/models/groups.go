@@ -35,7 +35,7 @@ func (gg *GroupGorm) CreateGroup(args map[string]interface{}) (*Group, error) {
 
 func (gg *GroupGorm) GetGroupByID(id uint) (*Group, error) {
 	var group Group
-	if err := gg.DB.Table("groups").Where("id = ?", id).Scan(&group).Error; err != nil {
+	if err := gg.DB.Table("groups").Where("id = ?", id).First(&group).Error; err != nil {
 		return nil, err
 	}
 	return &group, nil
