@@ -11,6 +11,7 @@ import (
 type DBService struct {
 	DB        *gorm.DB
 	UserDB    *models.UserGorm
+	DrugDB    *models.DrugGorm
 	MedCardDB *models.MedicalCardGorm
 }
 
@@ -18,6 +19,7 @@ func NewDBService(db *gorm.DB) *DBService {
 	return &DBService{
 		DB:        db,
 		UserDB:    models.NewUserGorm(db),
+		DrugDB:    models.NewDrugGorm(db),
 		MedCardDB: models.NewMedCardGorm(db),
 	}
 }

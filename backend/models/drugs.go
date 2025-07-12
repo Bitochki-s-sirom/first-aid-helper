@@ -18,6 +18,10 @@ type DrugGorm struct {
 	DB *gorm.DB
 }
 
+func NewDrugGorm(db *gorm.DB) *DrugGorm {
+	return &DrugGorm{DB: db}
+}
+
 func (dg *DrugGorm) CreateDrug(args map[string]interface{}) (*Drug, error) {
 
 	drug := &Drug{}
@@ -73,4 +77,13 @@ func (dg *DrugGorm) UpdateDrug(id int, args map[string]interface{}) (*Drug, erro
 		return nil, err
 	}
 	return drug, nil
+}
+
+func (dg *DrugGorm) GetAllDrugs() ([]Drug, error) {
+	var drugs []Drug
+	err := dg.DB.Table("drugs").Find(&drugs).Error
+	if err != nil {
+		return nil, err
+	}
+	return drugs, nil
 }
