@@ -23,17 +23,11 @@ class SquareAvatarWithFallback extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
       ),
       clipBehavior: Clip.hardEdge,
-      child: Image.network(
-        imageUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Center(
-            child: Text(
-              name.isNotEmpty ? name[0].toUpperCase() : '',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          );
-        },
+      child: Center(
+        child: Text(
+          name.isNotEmpty ? name[0].toUpperCase() : '',
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
       ),
     );
   }

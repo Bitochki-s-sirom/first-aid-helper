@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/squareavatar.dart';
 import '../colors/colors.dart';
+import '../services/local_storage.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -10,9 +11,41 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  String firstName = 'Сергей';
-  String lastName = 'Иванов';
-  String middleName = 'Петрович';
+  late String firstName = 'Гость';
+  late String email = 'Почта';
+  late String blood = '1 группа';
+  late String chronic = 'Синусит';
+  late String pass = '1';
+  late String snils = '1';
+  bool _isChronicExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final authData = await LocalStorage.getAuthData();
+      if (mounted) {
+        setState(() {
+          firstName = authData?['name'] ?? 'Гость';
+          email = authData?['email'] ?? 'Гость';
+          blood = authData?['blood_type'] ?? 'Гость';
+          chronic = authData?['chronic_cond'] ?? 'Гость';
+          pass = authData?['passport'] ?? 'Гость';
+          snils = authData?['snils'] ?? 'Гость';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          firstName = 'Ошибка загрузки';
+        });
+      }
+    }
+  }
 
   Future<void> _showEditDialog(BuildContext context, String title,
       String currentValue, Function(String) onSave) async {
@@ -75,8 +108,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildEditableField(
-      String label, String value, Function(String) onEdit) {
+  Widget _buildInfoField(String label, String value, {bool editable = true}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
@@ -92,7 +124,29 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           GestureDetector(
-            onTap: () => onEdit(value),
+            onTap: editable
+                ? () => _showEditDialog(
+                      context,
+                      label.toLowerCase(),
+                      value,
+                      (newValue) async {
+                        setState(() {
+                          if (label == 'Группа крови') blood = newValue;
+                          if (label == 'Паспорт') pass = newValue;
+                          if (label == 'СНИЛС') snils = newValue;
+                          if (label == 'Хронические заболевания') {
+                            chronic = newValue;
+                          }
+                        });
+                        await LocalStorage.updateAuthData({
+                          'blood_type': blood,
+                          'passport': pass,
+                          'snils': snils,
+                          'chronic_cond': chronic,
+                        });
+                      },
+                    )
+                : null,
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
               decoration: BoxDecoration(
@@ -103,7 +157,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     color: Colors.black.withOpacity(0.05),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
-                  ),
+                  )
                 ],
               ),
               child: Row(
@@ -115,12 +169,14 @@ class _ProfilePageState extends State<ProfilePage> {
                       color: isDark ? kDarkBackgroundColor : kBackgroundColor,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    Icons.edit,
-                    size: 18,
-                    color: kSidebarActiveColor,
-                  ),
+                  if (editable) ...[
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.edit,
+                      size: 18,
+                      color: kSidebarActiveColor,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -175,29 +231,124 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ],
                   ),
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 10),
                       Text(
-                        '$lastName $firstName $middleName',
+                        firstName,
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: 25,
                           fontWeight: FontWeight.bold,
                           color:
                               isDark ? kDarkBackgroundColor : kBackgroundColor,
                         ),
                       ),
-                      const SizedBox(height: 30),
-                      _buildEditableField(
-                        'Фамилия',
-                        lastName,
-                        (value) => _showEditDialog(
-                          context,
-                          'фамилию',
-                          lastName,
-                          (newValue) => setState(() => lastName = newValue),
+                      const SizedBox(height: 5),
+                      Text(
+                        email,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: isDark
+                              ? kDarkBackgroundColor.withOpacity(0.7)
+                              : kBackgroundColor.withOpacity(0.7),
                         ),
+                      ),
+                      const SizedBox(height: 20),
+                      Divider(
+                        height: 1,
+                        color: isDark
+                            ? kDarkBackgroundColor.withOpacity(0.2)
+                            : kBackgroundColor.withOpacity(0.2),
+                      ),
+                      _buildInfoField('Имя', firstName, editable: false),
+                      Divider(
+                        height: 1,
+                        color: isDark
+                            ? kDarkBackgroundColor.withOpacity(0.2)
+                            : kBackgroundColor.withOpacity(0.2),
+                      ),
+                      _buildInfoField('Почта', email, editable: false),
+                      Divider(
+                        height: 1,
+                        color: isDark
+                            ? kDarkBackgroundColor.withOpacity(0.2)
+                            : kBackgroundColor.withOpacity(0.2),
+                      ),
+                      _buildInfoField('Группа крови', blood),
+                      Divider(
+                        height: 1,
+                        color: isDark
+                            ? kDarkBackgroundColor.withOpacity(0.2)
+                            : kBackgroundColor.withOpacity(0.2),
+                      ),
+                      ExpansionPanelList(
+                        elevation: 0,
+                        expandedHeaderPadding: EdgeInsets.zero,
+                        expansionCallback: (int index, bool isExpanded) {
+                          setState(() {
+                            _isChronicExpanded = isExpanded;
+                          });
+                        },
+                        children: [
+                          ExpansionPanel(
+                            headerBuilder:
+                                (BuildContext context, bool isExpanded) {
+                              return ListTile(
+                                title: Text(
+                                  'Хронические заболевания',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: isDark
+                                        ? kDarkBackgroundColor
+                                        : kBackgroundColor,
+                                  ),
+                                ),
+                              );
+                            },
+                            body: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              child: TextField(
+                                controller:
+                                    TextEditingController(text: chronic),
+                                maxLines: 3,
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                  fillColor: isDark
+                                      ? kDarkBackgroundColor
+                                      : Colors.white,
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      Icons.edit,
+                                      color: kSidebarActiveColor,
+                                    ),
+                                    onPressed: () => _showEditDialog(
+                                      context,
+                                      'хронические заболевания',
+                                      chronic,
+                                      (newValue) async {
+                                        setState(() => chronic = newValue);
+                                        await LocalStorage.updateAuthData({
+                                          'chronic_cond': newValue,
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                style: TextStyle(
+                                  color: isDark
+                                      ? kDarkBackgroundColor
+                                      : kBackgroundColor,
+                                ),
+                              ),
+                            ),
+                            isExpanded: _isChronicExpanded,
+                          ),
+                        ],
                       ),
                       Divider(
                         height: 1,
@@ -205,32 +356,14 @@ class _ProfilePageState extends State<ProfilePage> {
                             ? kDarkBackgroundColor.withOpacity(0.2)
                             : kBackgroundColor.withOpacity(0.2),
                       ),
-                      _buildEditableField(
-                        'Имя',
-                        firstName,
-                        (value) => _showEditDialog(
-                          context,
-                          'имя',
-                          firstName,
-                          (newValue) => setState(() => firstName = newValue),
-                        ),
-                      ),
+                      _buildInfoField('Паспорт', pass),
                       Divider(
                         height: 1,
                         color: isDark
                             ? kDarkBackgroundColor.withOpacity(0.2)
                             : kBackgroundColor.withOpacity(0.2),
                       ),
-                      _buildEditableField(
-                        'Отчество',
-                        middleName,
-                        (value) => _showEditDialog(
-                          context,
-                          'отчество',
-                          middleName,
-                          (newValue) => setState(() => middleName = newValue),
-                        ),
-                      ),
+                      _buildInfoField('СНИЛС', snils),
                       const SizedBox(height: 20),
                     ],
                   ),
