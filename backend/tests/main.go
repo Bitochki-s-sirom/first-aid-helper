@@ -16,7 +16,7 @@ type APIResponse struct {
 
 const (
 	baseURL      = "http://localhost:8080"
-	testEmail    = "testuser4@example.com" // Single email for all tests
+	testEmail    = "testuser5@example.com" // Single email for all tests
 	testPassword = "secure123"
 	testName     = "Test User"
 )
