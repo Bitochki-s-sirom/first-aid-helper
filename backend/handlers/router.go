@@ -18,7 +18,8 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 
 func AddRoutes(r *mux.Router, service *services.DBService) {
 
-	userService := controllers.UserService{DB: service.UserDB}
+	medCardService := controllers.MedicalCardService{DB: service.MedCardDB}
+	userService := controllers.UserService{DB: service.UserDB, CardService: &medCardService}
 
 	r.HandleFunc("/", HomePage).Methods("GET")
 	r.HandleFunc("/signup", userService.SignUp).Methods("POST")
