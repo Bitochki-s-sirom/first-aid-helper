@@ -42,6 +42,13 @@ func (u *User) Validate(withoutName, withoutEmail bool) error {
 	return nil
 }
 
+// @Summary Описание
+// @Description Детальное описание
+// @Tags users
+// @Accept json
+// @Produce json
+// @Success 200 {object} User
+// @Router /signup [post]
 func (us *UserService) SignUp(w http.ResponseWriter, r *http.Request) {
 	newUser := &User{}
 
@@ -93,6 +100,13 @@ func (us *UserService) SignUp(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// @Summary Описание
+// @Description Детальное описание
+// @Tags users
+// @Accept json
+// @Produce json
+// @Success 200 {object} User
+// @Router /login [post]
 func (us *UserService) LogIn(w http.ResponseWriter, r *http.Request) {
 	user := &User{}
 
