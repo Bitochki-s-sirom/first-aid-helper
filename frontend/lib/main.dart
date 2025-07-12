@@ -51,8 +51,6 @@ class _MyAppState extends State<MyApp> {
         email: userData['email']!,
         password: userData['password']!,
         firstName: userData['firstName']!,
-        lastName: userData['lastName']!,
-        middleName: userData['middleName']!,
       );
       await LocalStorage.saveAuthData(response['token'], response['user']);
       setState(() => _isLoggedIn = true);

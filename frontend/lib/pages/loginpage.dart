@@ -31,7 +31,7 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Ошибка входа: ${e.toString()}'),
+          content: Text('Ошибка входа'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -72,16 +72,33 @@ class _LoginPageState extends State<LoginPage> {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black,
+                    color: kSidebarActiveColor,
                   ),
                 ),
                 const SizedBox(height: 30),
                 TextFormField(
                   controller: _emailController,
                   decoration: InputDecoration(
-                    labelText: 'Email',
+                    labelStyle: TextStyle(
+                      color: Colors.grey,
+                    ),
+                    floatingLabelStyle: TextStyle(
+                      color: kSidebarActiveColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: kSidebarActiveColor,
+                        width: 4.0,
+                      ),
+                    ),
+                    labelText: 'Почта',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          BorderSide(color: kSidebarActiveColor, width: 1),
                     ),
                     filled: true,
                     fillColor: isDark ? kDarkBackgroundColor : Colors.white,
@@ -94,9 +111,25 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
+                  cursorColor: kDarkSidebarIconColor,
                   controller: _passwordController,
                   obscureText: true,
                   decoration: InputDecoration(
+                    labelStyle: TextStyle(
+                      color: Colors.grey,
+                    ),
+                    floatingLabelStyle: TextStyle(
+                      color: kSidebarActiveColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: kSidebarActiveColor,
+                        width: 4.0,
+                      ),
+                    ),
                     labelText: 'Пароль',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),

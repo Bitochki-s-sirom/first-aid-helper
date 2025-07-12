@@ -11,7 +11,6 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/login'),
-        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
           'password': password,
@@ -32,8 +31,6 @@ class ApiService {
     required String email,
     required String password,
     required String firstName,
-    required String lastName,
-    required String middleName,
   }) async {
     try {
       final response = await http.post(
@@ -42,8 +39,6 @@ class ApiService {
           'email': email,
           'password': password,
           'firstName': firstName,
-          'lastName': lastName,
-          'middleName': middleName,
         }),
       );
 
