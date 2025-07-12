@@ -1,6 +1,7 @@
 package main
 
 import (
+	"first_aid_companion/handlers"
 	"fmt"
 	"net/http"
 
@@ -9,6 +10,8 @@ import (
 
 func main() {
 	router := mux.NewRouter()
+
+	handlers.AddRoutes(router)
 
 	srv := &http.Server{
 		Addr:    ":8080",
