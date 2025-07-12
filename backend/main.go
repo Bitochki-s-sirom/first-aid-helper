@@ -3,7 +3,7 @@ package main
 import (
 	"first_aid_companion/handlers"
 	"first_aid_companion/services"
-	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -12,11 +12,8 @@ import (
 )
 
 func main() {
-	router := mux.NewRouter()
-	handlers.AddRoutes(router)
-
-	dsn := `host=82.202.138.91 user=postgres password=h,RVN/G&iK£kkB75s>C"%Q9}1F;nNz dbname=firstaid port=5432 sslmode=disable`
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: nil})
+	dsn := `host=localhost user=postgres password=1121 dbname=firstaid port=5432 sslmode=disable`
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
@@ -26,12 +23,13 @@ func main() {
 		return
 	}
 
+	router := mux.NewRouter()
+	handlers.AddRoutes(router, dbService)
+
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: router,
 	}
 
-	if err := srv.ListenAndServe(); err != nil {
-		fmt.Println("Server failed to start: %v", err)
-	}
+	log.Fatal(srv.ListenAndServe())
 }
