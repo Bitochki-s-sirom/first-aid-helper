@@ -19,10 +19,57 @@ class _ProfilePageState extends State<ProfilePage> {
   late String snils = '1';
   bool _isChronicExpanded = false;
 
+  // Контроллеры для редактируемых полей
+  late TextEditingController _bloodController;
+  late TextEditingController _passController;
+  late TextEditingController _snilsController;
+  late TextEditingController _chronicController;
+
+  // Фокус ноды для управления курсором
+  late FocusNode _bloodFocusNode;
+  late FocusNode _passFocusNode;
+  late FocusNode _snilsFocusNode;
+  late FocusNode _chronicFocusNode;
+
+  // Оригинальные значения для сравнения
+  late String _originalBlood;
+  late String _originalPass;
+  late String _originalSnils;
+  late String _originalChronic;
+
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _bloodController = TextEditingController(text: blood);
+    _passController = TextEditingController(text: pass);
+    _snilsController = TextEditingController(text: snils);
+    _chronicController = TextEditingController(text: chronic);
+
+    _bloodFocusNode = FocusNode();
+    _passFocusNode = FocusNode();
+    _snilsFocusNode = FocusNode();
+    _chronicFocusNode = FocusNode();
+
+    // Сохраняем оригинальные значения
+    _originalBlood = blood;
+    _originalPass = pass;
+    _originalSnils = snils;
+    _originalChronic = chronic;
+  }
+
+  @override
+  void dispose() {
+    _bloodController.dispose();
+    _passController.dispose();
+    _snilsController.dispose();
+    _chronicController.dispose();
+
+    _bloodFocusNode.dispose();
+    _passFocusNode.dispose();
+    _snilsFocusNode.dispose();
+    _chronicFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserData() async {
@@ -36,6 +83,18 @@ class _ProfilePageState extends State<ProfilePage> {
           chronic = authData?['chronic_cond'] ?? 'Гость';
           pass = authData?['passport'] ?? 'Гость';
           snils = authData?['snils'] ?? 'Гость';
+
+          // Обновляем контроллеры
+          _bloodController.text = blood;
+          _passController.text = pass;
+          _snilsController.text = snils;
+          _chronicController.text = chronic;
+
+          // Обновляем оригинальные значения
+          _originalBlood = blood;
+          _originalPass = pass;
+          _originalSnils = snils;
+          _originalChronic = chronic;
         });
       }
     } catch (e) {
@@ -47,69 +106,16 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> _showEditDialog(BuildContext context, String title,
-      String currentValue, Function(String) onSave) async {
-    final TextEditingController controller =
-        TextEditingController(text: currentValue);
+  Widget _buildEditableField(
+    String label,
+    String value,
+    TextEditingController controller,
+    FocusNode focusNode,
+    Function() onSave,
+    String originalValue,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: kSidebarColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Text(
-            'Изменить $title',
-            style: TextStyle(
-              color: isDark ? kDarkBackgroundColor : kBackgroundColor,
-            ),
-          ),
-          content: TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              filled: true,
-              fillColor: isDark ? kDarkBackgroundColor : Colors.white,
-            ),
-            style: TextStyle(
-              color: isDark ? kDarkBackgroundColor : kBackgroundColor,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Отмена',
-                style: TextStyle(
-                  color: kSidebarActiveColor,
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                onSave(controller.text);
-                Navigator.pop(context);
-              },
-              child: Text(
-                'Сохранить',
-                style: TextStyle(
-                  color: kSidebarActiveColor,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildInfoField(String label, String value, {bool editable = true}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool hasChanges = controller.text != originalValue;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -123,66 +129,201 @@ class _ProfilePageState extends State<ProfilePage> {
               color: isDark ? kDarkBackgroundColor : kBackgroundColor,
             ),
           ),
-          GestureDetector(
-            onTap: editable
-                ? () => _showEditDialog(
-                      context,
-                      label.toLowerCase(),
-                      value,
-                      (newValue) async {
-                        setState(() {
-                          if (label == 'Группа крови') blood = newValue;
-                          if (label == 'Паспорт') pass = newValue;
-                          if (label == 'СНИЛС') snils = newValue;
-                          if (label == 'Хронические заболевания') {
-                            chronic = newValue;
-                          }
-                        });
-                        await LocalStorage.updateAuthData({
-                          'blood_type': blood,
-                          'passport': pass,
-                          'snils': snils,
-                          'chronic_cond': chronic,
-                        });
-                      },
-                    )
-                : null,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              decoration: BoxDecoration(
-                color: isDark ? kDarkBackgroundColor : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  )
-                ],
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    value.isNotEmpty ? value : 'Не указано',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: isDark ? kDarkBackgroundColor : kBackgroundColor,
+          Row(
+            children: [
+              SizedBox(
+                width: 290,
+                child: TextField(
+                  cursorColor: kSidebarActiveColor,
+                  controller: controller,
+                  focusNode: focusNode,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: kSidebarActiveColor,
+                  ),
+                  onChanged: (value) {
+                    setState(() {});
+                  },
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    border: InputBorder.none,
+                    hintText: value.isEmpty
+                        ? 'Нажми сюда, чтобы редактировать'
+                        : null,
+                    hintStyle: TextStyle(
+                      color: kSidebarActiveColor.withOpacity(0.6),
                     ),
                   ),
-                  if (editable) ...[
-                    const SizedBox(width: 8),
-                    Icon(
-                      Icons.edit,
-                      size: 18,
-                      color: kSidebarActiveColor,
-                    ),
-                  ],
-                ],
+                ),
               ),
-            ),
+              IconButton(
+                icon: Icon(
+                  Icons.check,
+                  size: 20,
+                  color: hasChanges ? kSidebarActiveColor : kBackgroundColor,
+                ),
+                onPressed: hasChanges
+                    ? () {
+                        onSave();
+                        setState(() {
+                          if (label == 'Группа крови')
+                            _originalBlood = controller.text;
+                          if (label == 'Паспорт')
+                            _originalPass = controller.text;
+                          if (label == 'СНИЛС')
+                            _originalSnils = controller.text;
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            width: 268,
+                            content: Center(
+                                child: Text(
+                              'Изменения сохранены',
+                              style: TextStyle(color: kSidebarIconColor),
+                            )),
+                            duration: Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            backgroundColor: kSidebarActiveColor,
+                          ),
+                        );
+                      }
+                    : null,
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildChronicConditions() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool hasChanges = _chronicController.text != _originalChronic;
+
+    return Column(
+      children: [
+        ListTile(
+          title: Text(
+            'Хронические заболевания',
+            style: TextStyle(
+              fontSize: 16,
+              color: isDark ? kDarkBackgroundColor : kBackgroundColor,
+            ),
+          ),
+          trailing: IconButton(
+            icon: Icon(
+              _isChronicExpanded ? Icons.expand_less : Icons.expand_more,
+              color: kSidebarActiveColor,
+            ),
+            onPressed: () {
+              setState(() {
+                _isChronicExpanded = !_isChronicExpanded;
+              });
+            },
+          ),
+        ),
+        if (_isChronicExpanded)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    cursorColor: kSidebarActiveColor,
+                    controller: _chronicController,
+                    focusNode: _chronicFocusNode,
+                    maxLines: 10,
+                    style: TextStyle(
+                      color: kSidebarActiveColor,
+                      fontSize: 14,
+                    ),
+                    onChanged: (value) {
+                      setState(() {});
+                    },
+                    decoration: InputDecoration(
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: kSidebarActiveColor.withOpacity(0.7),
+                          width: 1,
+                        ),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: kSidebarActiveColor,
+                          width: 1,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: kSidebarActiveColor,
+                          width: 4.0,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: isDark ? kDarkBackgroundColor : kSidebarColor,
+                      hintText: chronic.isEmpty
+                          ? 'Нажми сюда, чтобы редактировать'
+                          : null,
+                      hintStyle: TextStyle(
+                        color: kSidebarActiveColor.withOpacity(0.6),
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.check,
+                    color: hasChanges ? kSidebarActiveColor : kBackgroundColor,
+                  ),
+                  onPressed: hasChanges
+                      ? () async {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              width: 268,
+                              content: Center(
+                                  child: Text(
+                                'Изменения сохранены',
+                                style: TextStyle(color: kSidebarIconColor),
+                              )),
+                              duration: Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              backgroundColor: kSidebarActiveColor,
+                            ),
+                          );
+                          setState(() {
+                            chronic = _chronicController.text;
+                            _originalChronic = chronic;
+                          });
+                          await LocalStorage.updateAuthData({
+                            'blood_type': blood,
+                            'passport': pass,
+                            'snils': snils,
+                            'chronic_cond': chronic,
+                          });
+                          FocusScope.of(context).unfocus();
+                        }
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        Divider(
+          height: 1,
+          color: isDark
+              ? kDarkBackgroundColor.withOpacity(0.2)
+              : kBackgroundColor.withOpacity(0.2),
+        ),
+      ],
     );
   }
 
@@ -240,8 +381,9 @@ class _ProfilePageState extends State<ProfilePage> {
                         style: TextStyle(
                           fontSize: 25,
                           fontWeight: FontWeight.bold,
-                          color:
-                              isDark ? kDarkBackgroundColor : kBackgroundColor,
+                          color: isDark
+                              ? kDarkBackgroundColor
+                              : kSidebarActiveColor,
                         ),
                       ),
                       const SizedBox(height: 5),
@@ -251,7 +393,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           fontSize: 16,
                           color: isDark
                               ? kDarkBackgroundColor.withOpacity(0.7)
-                              : kBackgroundColor.withOpacity(0.7),
+                              : kSidebarActiveColor.withOpacity(0.7),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -261,94 +403,22 @@ class _ProfilePageState extends State<ProfilePage> {
                             ? kDarkBackgroundColor.withOpacity(0.2)
                             : kBackgroundColor.withOpacity(0.2),
                       ),
-                      _buildInfoField('Имя', firstName, editable: false),
-                      Divider(
-                        height: 1,
-                        color: isDark
-                            ? kDarkBackgroundColor.withOpacity(0.2)
-                            : kBackgroundColor.withOpacity(0.2),
-                      ),
-                      _buildInfoField('Почта', email, editable: false),
-                      Divider(
-                        height: 1,
-                        color: isDark
-                            ? kDarkBackgroundColor.withOpacity(0.2)
-                            : kBackgroundColor.withOpacity(0.2),
-                      ),
-                      _buildInfoField('Группа крови', blood),
-                      Divider(
-                        height: 1,
-                        color: isDark
-                            ? kDarkBackgroundColor.withOpacity(0.2)
-                            : kBackgroundColor.withOpacity(0.2),
-                      ),
-                      ExpansionPanelList(
-                        elevation: 0,
-                        expandedHeaderPadding: EdgeInsets.zero,
-                        expansionCallback: (int index, bool isExpanded) {
-                          setState(() {
-                            _isChronicExpanded = isExpanded;
+                      _buildEditableField(
+                        'Группа крови',
+                        blood,
+                        _bloodController,
+                        _bloodFocusNode,
+                        () async {
+                          setState(() => blood = _bloodController.text);
+                          await LocalStorage.updateAuthData({
+                            'blood_type': blood,
+                            'passport': pass,
+                            'snils': snils,
+                            'chronic_cond': chronic,
                           });
+                          FocusScope.of(context).unfocus();
                         },
-                        children: [
-                          ExpansionPanel(
-                            headerBuilder:
-                                (BuildContext context, bool isExpanded) {
-                              return ListTile(
-                                title: Text(
-                                  'Хронические заболевания',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: isDark
-                                        ? kDarkBackgroundColor
-                                        : kBackgroundColor,
-                                  ),
-                                ),
-                              );
-                            },
-                            body: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              child: TextField(
-                                controller:
-                                    TextEditingController(text: chronic),
-                                maxLines: 3,
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  filled: true,
-                                  fillColor: isDark
-                                      ? kDarkBackgroundColor
-                                      : Colors.white,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      Icons.edit,
-                                      color: kSidebarActiveColor,
-                                    ),
-                                    onPressed: () => _showEditDialog(
-                                      context,
-                                      'хронические заболевания',
-                                      chronic,
-                                      (newValue) async {
-                                        setState(() => chronic = newValue);
-                                        await LocalStorage.updateAuthData({
-                                          'chronic_cond': newValue,
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ),
-                                style: TextStyle(
-                                  color: isDark
-                                      ? kDarkBackgroundColor
-                                      : kBackgroundColor,
-                                ),
-                              ),
-                            ),
-                            isExpanded: _isChronicExpanded,
-                          ),
-                        ],
+                        _originalBlood,
                       ),
                       Divider(
                         height: 1,
@@ -356,15 +426,48 @@ class _ProfilePageState extends State<ProfilePage> {
                             ? kDarkBackgroundColor.withOpacity(0.2)
                             : kBackgroundColor.withOpacity(0.2),
                       ),
-                      _buildInfoField('Паспорт', pass),
+                      _buildEditableField(
+                        'Паспорт',
+                        pass,
+                        _passController,
+                        _passFocusNode,
+                        () async {
+                          setState(() => pass = _passController.text);
+                          await LocalStorage.updateAuthData({
+                            'blood_type': blood,
+                            'passport': pass,
+                            'snils': snils,
+                            'chronic_cond': chronic,
+                          });
+                          FocusScope.of(context).unfocus();
+                        },
+                        _originalPass,
+                      ),
                       Divider(
                         height: 1,
                         color: isDark
                             ? kDarkBackgroundColor.withOpacity(0.2)
                             : kBackgroundColor.withOpacity(0.2),
                       ),
-                      _buildInfoField('СНИЛС', snils),
+                      _buildEditableField(
+                        'СНИЛС',
+                        snils,
+                        _snilsController,
+                        _snilsFocusNode,
+                        () async {
+                          setState(() => snils = _snilsController.text);
+                          await LocalStorage.updateAuthData({
+                            'blood_type': blood,
+                            'passport': pass,
+                            'snils': snils,
+                            'chronic_cond': chronic,
+                          });
+                          FocusScope.of(context).unfocus();
+                        },
+                        _originalSnils,
+                      ),
                       const SizedBox(height: 20),
+                      _buildChronicConditions(),
                     ],
                   ),
                 ),
