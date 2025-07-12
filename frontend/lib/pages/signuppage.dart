@@ -16,8 +16,6 @@ class _RegisterPageState extends State<RegisterPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
-  final _middleNameController = TextEditingController();
   bool _isLoading = false;
 
   Future<void> _submitForm() async {
@@ -29,13 +27,11 @@ class _RegisterPageState extends State<RegisterPage> {
         'email': _emailController.text.trim(),
         'password': _passwordController.text.trim(),
         'firstName': _firstNameController.text.trim(),
-        'lastName': _lastNameController.text.trim(),
-        'middleName': _middleNameController.text.trim(),
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Ошибка регистрации: ${e.toString()}'),
+          content: Text('Ошибка регистрации'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -55,8 +51,6 @@ class _RegisterPageState extends State<RegisterPage> {
     _emailController.dispose();
     _passwordController.dispose();
     _firstNameController.dispose();
-    _lastNameController.dispose();
-    _middleNameController.dispose();
     super.dispose();
   }
 
@@ -87,13 +81,28 @@ class _RegisterPageState extends State<RegisterPage> {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black,
+                  color: kSidebarActiveColor,
                 ),
               ),
               const SizedBox(height: 30),
               TextFormField(
                 controller: _firstNameController,
                 decoration: InputDecoration(
+                  labelStyle: TextStyle(
+                    color: Colors.grey,
+                  ),
+                  floatingLabelStyle: TextStyle(
+                    color: kSidebarActiveColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: kSidebarActiveColor,
+                      width: 4.0,
+                    ),
+                  ),
                   labelText: 'Имя',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -110,46 +119,24 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               const SizedBox(height: 20),
               TextFormField(
-                controller: _lastNameController,
-                decoration: InputDecoration(
-                  labelText: 'Фамилия',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        BorderSide(color: kSidebarActiveColor, width: 1),
-                  ),
-                  filled: true,
-                  fillColor: isDark ? kDarkBackgroundColor : Colors.white,
-                ),
-                style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black,
-                ),
-                validator: (value) => Validators.validateName(value, 'Фамилия'),
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _middleNameController,
-                decoration: InputDecoration(
-                  labelText: 'Отчество',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        BorderSide(color: kSidebarActiveColor, width: 1),
-                  ),
-                  filled: true,
-                  fillColor: isDark ? kDarkBackgroundColor : Colors.white,
-                ),
-                style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black,
-                ),
-                validator: (value) =>
-                    Validators.validateName(value, 'Отчество'),
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
                 controller: _emailController,
                 decoration: InputDecoration(
-                  labelText: 'Email',
+                  labelStyle: TextStyle(
+                    color: Colors.grey,
+                  ),
+                  floatingLabelStyle: TextStyle(
+                    color: kSidebarActiveColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: kSidebarActiveColor,
+                      width: 4.0,
+                    ),
+                  ),
+                  labelText: 'Почта',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide:
@@ -169,6 +156,21 @@ class _RegisterPageState extends State<RegisterPage> {
                 controller: _passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
+                  labelStyle: TextStyle(
+                    color: Colors.grey,
+                  ),
+                  floatingLabelStyle: TextStyle(
+                    color: kSidebarActiveColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: kSidebarActiveColor,
+                      width: 4.0,
+                    ),
+                  ),
                   labelText: 'Пароль',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
