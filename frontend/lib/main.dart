@@ -36,7 +36,7 @@ class _MyAppState extends State<MyApp> {
   Future<void> _login(String email, String password) async {
     try {
       final response = await ApiService.login(email: email, password: password);
-      await LocalStorage.saveAuthData(response['token'], response['user']);
+      await LocalStorage.saveAuthData(response['data']);
       setState(() => _isLoggedIn = true);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -52,7 +52,7 @@ class _MyAppState extends State<MyApp> {
         password: userData['password']!,
         firstName: userData['firstName']!,
       );
-      await LocalStorage.saveAuthData(response['token'], response['user']);
+      await LocalStorage.saveAuthData(response['data']);
       setState(() => _isLoggedIn = true);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
