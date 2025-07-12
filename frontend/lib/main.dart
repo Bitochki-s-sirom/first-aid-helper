@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
 import 'colors/colors.dart';
 import 'colors/themes.dart';
+import 'pages/chathelper.dart';
+import 'pages/medications.dart';
+import 'pages/profile.dart';
+import 'pages/records.dart';
+import 'widgets/squareavatar.dart';
+import 'services/api_service.dart';
+import 'services/local_storage.dart';
+import 'utils/validators.dart';
+import 'pages/loginpage.dart';
+import 'pages/signuppage.dart';
 
 void main() {
   runApp(MyApp());
@@ -14,11 +24,62 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   ThemeMode _themeMode = ThemeMode.light;
+  bool _isLoggedIn = false;
 
   void _toggleTheme() {
     setState(() {
       _themeMode =
           _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    });
+  }
+
+  Future<void> _login(String email, String password) async {
+    try {
+      final response = await ApiService.login(email: email, password: password);
+      await LocalStorage.saveAuthData(response['token'], response['user']);
+      setState(() => _isLoggedIn = true);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка входа: ${e.toString()}')),
+      );
+    }
+  }
+
+  Future<void> _register(Map<String, String> userData) async {
+    try {
+      final response = await ApiService.register(
+        email: userData['email']!,
+        password: userData['password']!,
+        firstName: userData['firstName']!,
+        lastName: userData['lastName']!,
+        middleName: userData['middleName']!,
+      );
+      await LocalStorage.saveAuthData(response['token'], response['user']);
+      setState(() => _isLoggedIn = true);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка регистрации: ${e.toString()}')),
+      );
+      rethrow;
+    }
+  }
+
+  Future<void> _checkAuthStatus() async {
+    final authData = await LocalStorage.getAuthData();
+    if (authData != null) {
+      setState(() => _isLoggedIn = true);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthStatus();
+  }
+
+  void _logout() {
+    setState(() {
+      _isLoggedIn = false;
     });
   }
 
@@ -29,15 +90,25 @@ class _MyAppState extends State<MyApp> {
       theme: lightTheme,
       darkTheme: darkTheme,
       themeMode: _themeMode,
-      home: DashboardPage(onToggleTheme: _toggleTheme),
+      home: _isLoggedIn
+          ? DashboardPage(onToggleTheme: _toggleTheme, onLogout: _logout)
+          : LoginPage(onLogin: _login),
+      routes: {
+        '/register': (context) => RegisterPage(onRegister: _register),
+      },
     );
   }
 }
 
 class DashboardPage extends StatefulWidget {
   final VoidCallback onToggleTheme;
+  final VoidCallback onLogout;
 
-  const DashboardPage({super.key, required this.onToggleTheme});
+  const DashboardPage({
+    super.key,
+    required this.onToggleTheme,
+    required this.onLogout,
+  });
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -53,6 +124,13 @@ class _DashboardPageState extends State<DashboardPage> {
     {'icon': Icons.calendar_month, 'label': 'Medications runout'},
   ];
 
+  final List<Widget> pages = const [
+    ProfilePage(),
+    MedicalRecordsPage(),
+    ChatHelperPage(),
+    MedicationsRunoutPage(),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -62,12 +140,10 @@ class _DashboardPageState extends State<DashboardPage> {
           child: Column(
             children: [
               const SizedBox(height: 20),
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: kSidebarActiveColor,
-                child: Center(
-                    child: Text('C',
-                        style: Theme.of(context).textTheme.bodyMedium)),
+              SquareAvatarWithFallback(
+                imageUrl: 'https://example.com/avatar.jpg',
+                name: 'Сергей',
+                size: 70,
               ),
               const SizedBox(height: 30),
               ...List.generate(menuItems.length, (index) {
@@ -97,6 +173,19 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 );
               }),
+              const Spacer(),
+              ListTile(
+                leading: Icon(Icons.logout,
+                    color: Theme.of(context).brightness == Brightness.light
+                        ? kSidebarIconColor
+                        : kDarkSidebarIconColor),
+                title: Text(
+                  'Выйти',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                onTap: widget.onLogout,
+              ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -121,16 +210,11 @@ class _DashboardPageState extends State<DashboardPage> {
                   : kDarkBackgroundColor,
             ),
             onPressed: widget.onToggleTheme,
-            tooltip: 'Toggle Theme',
+            tooltip: 'Change Theme',
           ),
         ],
       ),
-      body: Center(
-        child: Text(
-          'Выбран пункт: ${menuItems[selectedIndex]['label']}',
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-      ),
+      body: pages[selectedIndex],
     );
   }
 }
