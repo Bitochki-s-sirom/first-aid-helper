@@ -3,7 +3,7 @@ package main
 import (
 	"first_aid_companion/handlers"
 	"first_aid_companion/services"
-	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -13,7 +13,7 @@ import (
 
 func main() {
 	dsn := `host=localhost user=postgres password=1121 dbname=firstaid port=5432 sslmode=disable`
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: nil})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
@@ -31,7 +31,5 @@ func main() {
 		Handler: router,
 	}
 
-	if err := srv.ListenAndServe(); err != nil {
-		fmt.Println("Server failed to start: %v", err)
-	}
+	log.Fatal(srv.ListenAndServe())
 }
