@@ -1,4 +1,10 @@
 definitions:
+  controllers.APIResponse:
+    properties:
+      data: {}
+      status:
+        type: integer
+    type: object
   controllers.User:
     properties:
       email:
@@ -15,30 +21,59 @@ paths:
     post:
       consumes:
       - application/json
-      description: Детальное описание
+      description: Authenticates a user and returns a JWT
+      parameters:
+      - description: login body
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.User'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.User'
-      summary: Описание
+            $ref: '#/definitions/controllers.APIResponse'
+      summary: Log in a user
+      tags:
+      - users
+  /me:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves the authenticated user's details
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      summary: Get current user
       tags:
       - users
   /signup:
     post:
       consumes:
       - application/json
-      description: Детальное описание
+      description: Creates a new user account
+      parameters:
+      - description: signup body
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.User'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/controllers.User'
-      summary: Описание
+            $ref: '#/definitions/controllers.APIResponse'
+      summary: Sign up a new user
       tags:
       - users
 swagger: "2.0"

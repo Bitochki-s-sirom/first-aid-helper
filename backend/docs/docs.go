@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/login": {
             "post": {
-                "description": "Детальное описание",
+                "description": "Authenticates a user and returns a JWT",
                 "consumes": [
                     "application/json"
                 ],
@@ -27,12 +27,46 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Описание",
+                "summary": "Log in a user",
+                "parameters": [
+                    {
+                        "description": "login body",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.User"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.User"
+                            "$ref": "#/definitions/controllers.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/me": {
+            "get": {
+                "description": "Retrieves the authenticated user's details",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get current user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.APIResponse"
                         }
                     }
                 }
@@ -40,7 +74,7 @@ const docTemplate = `{
         },
         "/signup": {
             "post": {
-                "description": "Детальное описание",
+                "description": "Creates a new user account",
                 "consumes": [
                     "application/json"
                 ],
@@ -50,12 +84,23 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Описание",
+                "summary": "Sign up a new user",
+                "parameters": [
+                    {
+                        "description": "signup body",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.User"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/controllers.User"
+                            "$ref": "#/definitions/controllers.APIResponse"
                         }
                     }
                 }
@@ -63,6 +108,15 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "controllers.APIResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
         "controllers.User": {
             "type": "object",
             "properties": {

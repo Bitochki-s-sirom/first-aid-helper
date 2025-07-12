@@ -49,7 +49,8 @@ func (u *User) Validate(withoutName, withoutEmail bool) error {
 // @Tags users
 // @Accept json
 // @Produce json
-// @Success 200 {object} User
+// @Param input body User true "signup body"
+// @Success 200 {object} APIResponse
 // @Router /signup [post]
 func (us *UserService) SignUp(w http.ResponseWriter, r *http.Request) {
 	newUser := &User{}
@@ -114,7 +115,8 @@ func (us *UserService) SignUp(w http.ResponseWriter, r *http.Request) {
 // @Tags users
 // @Accept json
 // @Produce json
-// @Success 200 {object} User
+// @Param input body User true "login body"
+// @Success 200 {object} APIResponse
 // @Router /login [post]
 func (us *UserService) LogIn(w http.ResponseWriter, r *http.Request) {
 	user := &User{}
@@ -180,7 +182,7 @@ func (us *UserService) GetUserFromContext(ctx context.Context) (*models.User, er
 // @Tags users
 // @Accept json
 // @Produce json
-// @Success 200 {object} User
+// @Success 200 {object} APIResponse
 // @Router /me [get]
 func (us *UserService) Me(w http.ResponseWriter, r *http.Request) {
 	user, err := us.GetUserFromContext(r.Context())
