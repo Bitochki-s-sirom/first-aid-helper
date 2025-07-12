@@ -5,6 +5,23 @@ definitions:
       status:
         type: integer
     type: object
+  controllers.DocumentCreation:
+    properties:
+      date:
+        example: "2025-07-12T23:45:00Z"
+        type: string
+      doctor:
+        type: string
+      file_data:
+        description: base64-encoded in JSON
+        items:
+          type: integer
+        type: array
+      name:
+        type: string
+      type:
+        type: string
+    type: object
   controllers.DrugCreation:
     properties:
       description:
@@ -31,6 +48,25 @@ definitions:
         example: Aspirin
         type: string
     type: object
+  models.Document:
+    properties:
+      date:
+        type: string
+      doctor:
+        type: string
+      fileData:
+        items:
+          type: integer
+        type: array
+      id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+      userID:
+        type: integer
+    type: object
   models.Drug:
     properties:
       description:
@@ -51,6 +87,50 @@ definitions:
 info:
   contact: {}
 paths:
+  /auth/documents:
+    get:
+      consumes:
+      - application/json
+      description: Returns all user documents in json format
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Document'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get all documents
+      tags:
+      - documents
+  /auth/documents/add:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: document body
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.DocumentCreation'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/controllers.APIResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Add one document
+      tags:
+      - documents
   /auth/drugs:
     get:
       consumes:
