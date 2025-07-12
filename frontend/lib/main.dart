@@ -23,6 +23,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
   ThemeMode _themeMode = ThemeMode.light;
   bool _isLoggedIn = false;
 
@@ -39,7 +41,7 @@ class _MyAppState extends State<MyApp> {
       await LocalStorage.saveAuthData(response['data']);
       setState(() => _isLoggedIn = true);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      _scaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text('Ошибка входа: ${e.toString()}')),
       );
     }
@@ -54,8 +56,14 @@ class _MyAppState extends State<MyApp> {
       );
       await LocalStorage.saveAuthData(response['data']);
       setState(() => _isLoggedIn = true);
+
+      _scaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text('Регистрация успешна!'),
+        ),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      _scaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text('Ошибка регистрации: ${e.toString()}')),
       );
       rethrow;
@@ -84,6 +92,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      scaffoldMessengerKey: _scaffoldMessengerKey,
       title: 'Monochrome Dashboard',
       theme: lightTheme,
       darkTheme: darkTheme,

@@ -28,17 +28,9 @@ class _RegisterPageState extends State<RegisterPage> {
         'password': _passwordController.text.trim(),
         'firstName': _firstNameController.text.trim(),
       });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Ошибка регистрации'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
