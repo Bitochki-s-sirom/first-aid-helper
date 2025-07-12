@@ -1,24 +1,61 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class LocalStorage {
   static const String _authTokenKey = 'auth_token';
-  static const String _userDataKey = 'user_data';
+  static const String _name = 'name';
+  static const String _email = 'email';
+  static const String _snils = 'snils';
+  static const String _passport = 'passport';
+  static const String _blood = 'blood';
+  static const String _chronic = 'chronic';
+  static const String _baseUrl = 'http://localhost:8080';
 
-  static Future<void> saveAuthData(String token) async {
+  static Future<void> saveAuthData(
+      String token, Map<String, dynamic> info) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_authTokenKey, token);
+    await prefs.setString(_name, info['name']);
+    await prefs.setString(_email, info['email']);
+    if (info['snils'] == null) {
+      await prefs.setString(_snils, '');
+    } else {
+      await prefs.setString(_snils, info['snils']);
+    }
+
+    if (info['passport'] == null) {
+      await prefs.setString(_passport, '');
+    } else {
+      await prefs.setString(_passport, info['passport']);
+    }
+
+    if (info['blood_type'] == null) {
+      await prefs.setString(_blood, '');
+    } else {
+      await prefs.setString(_blood, info['blood_type']);
+    }
+
+    if (info['chronic_cond'] == null) {
+      await prefs.setString(_chronic, '');
+    } else {
+      await prefs.setString(_chronic, info['chronic_cond']);
+    }
   }
 
   static Future<Map<String, dynamic>?> getAuthData() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_authTokenKey);
-    final userDataString = prefs.getString(_userDataKey);
 
-    if (token != null && userDataString != null) {
+    if (token != null) {
       return {
         'token': token,
-        'user': jsonDecode(userDataString),
+        'name': prefs.getString(_name),
+        'email': prefs.getString(_email),
+        'snils': prefs.getString(_snils),
+        'passport': prefs.getString(_passport),
+        'blood_type': prefs.getString(_blood),
+        'chronic_cond': prefs.getString(_chronic),
       };
     }
     return null;
@@ -27,6 +64,58 @@ class LocalStorage {
   static Future<void> clearAuthData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_authTokenKey);
-    await prefs.remove(_userDataKey);
+    await prefs.remove(_name);
+    await prefs.remove(_email);
+    await prefs.remove(_snils);
+    await prefs.remove(_passport);
+    await prefs.remove(_blood);
+    await prefs.remove(_chronic);
+  }
+
+  static Future<bool> updateAuthData(Map<String, dynamic> newData) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(_authTokenKey);
+
+      if (token == null) {
+        return false;
+      }
+
+      final response = await http.post(
+        Uri.parse('$_baseUrl/auth/me'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(newData),
+      );
+
+      if (response.statusCode != 200) {
+        return false;
+      }
+
+      final updatedResponse = await http.get(
+        Uri.parse('$_baseUrl/auth/me'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (updatedResponse.statusCode != 200) {
+        return false;
+      }
+
+      final updatedData = jsonDecode(updatedResponse.body);
+
+      await prefs.setString(_name, updatedData['name'] ?? '');
+      await prefs.setString(_email, updatedData['email'] ?? '');
+      await prefs.setString(_snils, updatedData['snils'] ?? '');
+      await prefs.setString(_passport, updatedData['passport'] ?? '');
+      await prefs.setString(_blood, updatedData['blood_type'] ?? '');
+      await prefs.setString(_chronic, updatedData['chronic_cond'] ?? '');
+
+      return true;
+    } catch (e) {
+      print('Error updating auth data: $e');
+      return false;
+    }
   }
 }
