@@ -1,6 +1,8 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 type User struct {
 	ID           uint `gorm:"primaryKey"`
@@ -30,9 +32,17 @@ func (ug *UserGorm) CreateUser(name, email, password_hash string) (*User, error)
 	return user, nil
 }
 
-func (ug *UserGorm) GetUser(id int) (*User, error) {
+func (ug *UserGorm) GetUserByID(id int) (*User, error) {
 	var user User
 	if err := ug.DB.Table("users").Where("id = ?", id).Scan(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (ug *UserGorm) GetUserByEmail(email string) (*User, error) {
+	var user User
+	if err := ug.DB.Table("users").Where("email = ?", email).Scan(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
