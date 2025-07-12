@@ -19,8 +19,18 @@ type User struct {
 	Password string `json:"password"`
 }
 
+type UserUpdates struct {
+	Passport    string `json:"passport"`
+	Snils       string `json:"snils"`
+	Address     string `json:"address"`
+	Allergies   string `json:"allergies"`
+	ChronicCond string `json:"chronic_cond"`
+	BloodType   string `json:"blood_type"`
+}
+
 type UserService struct {
-	DB *models.UserGorm
+	DB          *models.UserGorm
+	CardService *MedicalCardService
 }
 
 func (u *User) Validate(withoutName, withoutEmail bool) error {
@@ -192,17 +202,79 @@ func (us *UserService) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	medCard, err := us.CardService.DB.GetCardByUserID(user.ID)
+	if err != nil {
+		log.Printf("Error getting medical card in Me: %v", err)
+		WriteError(w, 500, err.Error())
+		return
+	}
+
 	userData := map[string]interface{}{
-		"name":     user.Name,
-		"email":    user.Email,
-		"snils":    user.SNILS,
-		"passport": user.Passport,
-		"address":  user.Address,
+		"name":               user.Name,
+		"email":              user.Email,
+		"snils":              user.SNILS,
+		"passport":           user.Passport,
+		"address":            user.Address,
+		"allergies":          medCard.Allergies,
+		"chronic_conditions": medCard.ChronicCond,
+		"blood_type":         medCard.BloodType,
 	}
 
 	log.Printf("User data retrieved for email: %s", user.Email)
 	WriteJSON(w, 200, userData)
 
-	// Replaced fmt.Fprintln(w, user.Name) to log to console instead of response
 	log.Printf("User name: %s", user.Name)
+}
+
+func (us *UserService) UpdateMe(w http.ResponseWriter, r *http.Request) {
+	user, err := us.GetUserFromContext(r.Context())
+	if err != nil || user == nil {
+		log.Printf("Error getting user from context in Me: %v", err)
+		WriteError(w, 500, err.Error())
+		return
+	}
+
+	userUpdates := &UserUpdates{}
+	if err := ParseJSON(r, userUpdates); err != nil {
+		log.Printf("Error updating user in update Me while parsing JSON: %v", err)
+		WriteError(w, 500, err.Error())
+		return
+	}
+
+	if userUpdates.Address != "" {
+		user.Address = userUpdates.Address
+	}
+	if userUpdates.Passport != "" {
+		user.Passport = userUpdates.Passport
+	}
+	if userUpdates.Snils != "" {
+		user.SNILS = userUpdates.Snils
+	}
+
+	medCard, err := us.CardService.DB.GetCardByUserID(user.ID)
+	if err != nil {
+		log.Printf("Error getting medical card in Me: %v", err)
+		WriteError(w, 500, err.Error())
+		return
+	}
+
+	if userUpdates.Allergies != "" {
+		medCard.Allergies = userUpdates.Allergies
+	}
+	if userUpdates.ChronicCond != "" {
+		medCard.ChronicCond = userUpdates.ChronicCond
+	}
+	if userUpdates.BloodType != "" {
+		medCard.BloodType = userUpdates.BloodType
+	}
+
+	if err := us.CardService.UpdateCard(medCard); err != nil {
+		log.Printf("Error getting medical card in Me: %v", err)
+		WriteError(w, 500, err.Error())
+		return
+	}
+
+	WriteJSON(w, 200, nil)
+
+	log.Println("Successfully updated user and med card")
 }

@@ -54,3 +54,7 @@ func (ug *UserGorm) GetUserByEmail(email string) (*User, error) {
 	}
 	return &user, nil
 }
+
+func (ug *UserGorm) UpdateUser(user *User) error {
+	return ug.DB.Table("users").Save(user).Error
+}
