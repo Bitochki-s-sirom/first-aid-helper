@@ -38,7 +38,9 @@ class _MyAppState extends State<MyApp> {
   Future<void> _login(String email, String password) async {
     try {
       final response = await ApiService.login(email: email, password: password);
-      await LocalStorage.saveAuthData(response['data']);
+      final personalInfo = await ApiService.getInfo(token: response['data']);
+      await LocalStorage.saveAuthData(response['data'], personalInfo);
+
       setState(() => _isLoggedIn = true);
     } catch (e) {
       _scaffoldMessengerKey.currentState?.showSnackBar(
@@ -54,7 +56,8 @@ class _MyAppState extends State<MyApp> {
         password: userData['password']!,
         firstName: userData['firstName']!,
       );
-      await LocalStorage.saveAuthData(response['data']);
+      final personalInfo = await ApiService.getInfo(token: response['data']);
+      await LocalStorage.saveAuthData(response['data'], personalInfo);
       setState(() => _isLoggedIn = true);
 
       _scaffoldMessengerKey.currentState?.showSnackBar(
@@ -84,6 +87,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _logout() {
+    LocalStorage.clearAuthData();
     setState(() {
       _isLoggedIn = false;
     });
@@ -123,6 +127,30 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   int selectedIndex = 0;
+  late String firstName = 'Гость';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final authData = await LocalStorage.getAuthData();
+      if (mounted) {
+        setState(() {
+          firstName = authData?['name'] ?? 'Гость';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          firstName = 'Ошибка загрузки';
+        });
+      }
+    }
+  }
 
   final List<Map<String, dynamic>> menuItems = [
     {'icon': Icons.person, 'label': 'Profile'},
@@ -149,7 +177,7 @@ class _DashboardPageState extends State<DashboardPage> {
               const SizedBox(height: 20),
               SquareAvatarWithFallback(
                 imageUrl: 'https://example.com/avatar.jpg',
-                name: 'Сергей',
+                name: firstName,
                 size: 70,
               ),
               const SizedBox(height: 30),

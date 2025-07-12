@@ -51,4 +51,23 @@ class ApiService {
       throw Exception('Registration error: $e');
     }
   }
+
+  static Future<Map<String, dynamic>> getInfo({
+    required String token,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/auth/me'),
+        headers: {'Authorization': 'Bearer ' + token},
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to login: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Login error: $e');
+    }
+  }
 }
