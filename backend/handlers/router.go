@@ -50,6 +50,7 @@ func AddRoutes(r *mux.Router, service *services.DBService) {
 	// Personal documents (medical prescriptions, illness records etc)
 	authRoute.HandleFunc("/documents", documentsService.Documents).Methods("GET")
 	authRoute.HandleFunc("/documents/add", documentsService.AddDocument).Methods("POST")
+	authRoute.HandleFunc("/documents/remove/{id:[0-9]+}", documentsService.RemoveDocument).Methods("POST")
 
 	// Chat with AI
 	authRoute.HandleFunc("/chats", chatService.GetUsersChats).Methods("GET")
