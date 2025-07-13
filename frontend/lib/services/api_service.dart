@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class ApiService {
@@ -232,24 +233,38 @@ class ApiService {
     }
   }
 
-  static Future<bool> addDocument(
-      {required String token, required Map<String, dynamic> document}) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/auth/documents/add'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode(document),
-    );
+  static Future<bool> addDocumentWithPhoto({
+    required String token,
+    required Map<String, dynamic> document,
+    File? photoFile,
+  }) async {
+    final uri = Uri.parse('$_baseUrl/auth/documents/add');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $token';
+
+    document.forEach((key, value) {
+      if (key != 'photo' && key != 'photoFileName' && key != 'photoFile') {
+        request.fields[key] = value?.toString() ?? '';
+      }
+    });
+
+    if (photoFile != null) {
+      request.files
+          .add(await http.MultipartFile.fromPath('photo', photoFile.path));
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
     return response.statusCode == 200;
   }
 
-  static Future<bool> removeDocument(
-      {required String token, required int id}) async {
-    // Предполагается, что удаление реализовано как /auth/documents/remove/{id}
+  static Future<bool> removeDocument({
+    required String token,
+    required int id,
+  }) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/auth/documents/remove/$id'),
+      Uri.parse('$_baseUrl/auth/document/remove/$id'),
       headers: {
         'Authorization': 'Bearer $token',
       },

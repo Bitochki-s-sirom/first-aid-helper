@@ -4,6 +4,7 @@ import '../colors/colors.dart';
 import '../services/local_storage.dart';
 import '../services/api_service.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
 
 class DocumentsPage extends StatefulWidget {
   const DocumentsPage({super.key});
@@ -55,13 +56,18 @@ class _DocumentsPageState extends State<DocumentsPage> {
   Future<void> _addDocument(Map<String, dynamic> newDoc) async {
     if (_token == '') return;
     try {
-      final success =
-          await ApiService.addDocument(token: _token, document: newDoc);
+      final photoFile = newDoc['photoFile'] as File?;
+      final docData = Map<String, dynamic>.from(newDoc)..remove('photoFile');
+      final success = await ApiService.addDocumentWithPhoto(
+        token: _token,
+        document: docData,
+        photoFile: photoFile,
+      );
       if (success) {
         final docsFromServer = await ApiService.getDocuments(token: _token);
         setState(() {
           documents = docsFromServer;
-          _allDoctors = _allDoctors =
+          _allDoctors =
               documents.map((m) => (m['doctor'] ?? '').toString()).toSet();
           _filterDocuments(_searchController.text);
         });
@@ -190,16 +196,7 @@ class _DocumentsPageState extends State<DocumentsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 24),
-                    if (doc['photo'] != null &&
-                        doc['photo'].toString().isNotEmpty)
-                      Center(
-                        child: Image.file(
-                          File(doc['photo']),
-                          width: 180,
-                          height: 180,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
+                    Center(child: buildDocumentImage(doc['photo'], size: 180)),
                     const SizedBox(height: 15),
                     if (doc['doctor'] != null &&
                         doc['doctor'].toString().isNotEmpty)
@@ -240,6 +237,19 @@ class _DocumentsPageState extends State<DocumentsPage> {
         onAdd: (newDoc) => _addDocument(newDoc),
       ),
     );
+  }
+
+  Widget buildDocumentImage(String? photoBase64, {double size = 36}) {
+    if (photoBase64 == null || photoBase64.isEmpty) {
+      return Icon(Icons.image_not_supported,
+          size: size, color: Colors.grey[400]);
+    }
+    if (photoBase64.startsWith('data:image')) {
+      final base64Str = photoBase64.split(',').last;
+      final bytes = base64Decode(base64Str);
+      return Image.memory(bytes, width: size, height: size, fit: BoxFit.cover);
+    }
+    return Icon(Icons.image_not_supported, size: size, color: Colors.grey[400]);
   }
 
   Widget _buildDetailRow(String title, String value) {
@@ -403,42 +413,59 @@ class _DocumentsPageState extends State<DocumentsPage> {
                     child: Padding(
                       padding: const EdgeInsets.all(12),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          if (doc['photo'] != null &&
-                              doc['photo'].toString().isNotEmpty)
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.file(
-                                File(doc['photo']),
-                                width: 42,
-                                height: 42,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          const SizedBox(height: 4),
+                          Expanded(child: SizedBox()),
                           if (doc['doctor'] != null &&
                               doc['doctor'].toString().isNotEmpty)
-                            Text(
-                              doc['doctor'],
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            Row(
+                              children: [
+                                Icon(Icons.person,
+                                    size: 17, color: Colors.grey[600]),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    doc['doctor'],
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                           const SizedBox(height: 2),
-                          Text(
-                            doc['shortDescription'] ?? '',
-                            style: const TextStyle(
-                                fontSize: 11, color: kSidebarActiveColor),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const Spacer(),
+                          if (doc['shortDescription'] != null &&
+                              doc['shortDescription'].toString().isNotEmpty)
+                            Row(
+                              children: [
+                                Icon(Icons.description,
+                                    size: 16, color: kSidebarActiveColor),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    doc['shortDescription'],
+                                    style: const TextStyle(
+                                        fontSize: 11,
+                                        color: kSidebarActiveColor),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
                         ],
                       ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: buildDocumentImage(doc['photo']),
                     ),
                   ),
                   Positioned(
@@ -501,17 +528,14 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
   }
 
   void _submit() {
-    if (_formKey.currentState?.validate() != true) {
-      return;
-    }
+    if (_formKey.currentState?.validate() != true) return;
 
     widget.onAdd({
       'id': DateTime.now().millisecondsSinceEpoch,
       'doctor': _doctorController.text.trim(),
       'shortDescription': _shortDescController.text.trim(),
       'fullDescription': _fullDescController.text.trim(),
-      'photo': _photoFile?.path ?? '',
-      'photoFileName': _photoNameController.text.trim(),
+      'photoFile': _photoFile,
     });
     Navigator.pop(context);
   }
