@@ -1,6 +1,6 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import '../colors/colors.dart';
 import '../services/api_service.dart';
 import '../services/local_storage.dart';
@@ -58,6 +58,7 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
   int? _selectedChatId;
   bool _isLoading = false;
   String? _token;
+  final _listKey = GlobalKey<AnimatedListState>();
 
   @override
   void dispose() {
@@ -100,7 +101,7 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
       // Если чатов нет, создаем первый чат
       if (_chats.isEmpty) {
         await _addNewChat();
-        return; // _addNewChat сам обновит состояние
+        return;
       }
 
       setState(() {
@@ -208,44 +209,6 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
       );
     }
   }
-  // Future<void> _sendMessage() async {
-  //   final text = _messageController.text.trim();
-  //   if (text.isEmpty || _currentChat == null || _token == null) return;
-
-  //   setState(() {
-  //     _currentChat!.messages.add(ChatMessage(text: text, isUser: true));
-  //     _isLoading = true;
-  //     _messageController.clear();
-  //   });
-  //   await _saveChatsToLocal();
-
-  //   try {
-  //     final aiReply = await ApiService.sendAiMessage(
-  //       token: _token!,
-  //       chatId: _currentChat!.id,
-  //       message: text,
-  //     );
-  //     setState(() {
-  //       _currentChat!.messages.add(ChatMessage(text: aiReply, isUser: false));
-  //       _isLoading = false;
-  //     });
-
-  //     if (_currentChat!.messages.where((m) => m.isUser).length == 1) {
-  //       final newTitle =
-  //           text.length > 20 ? text.substring(0, 20) + '...' : text;
-  //       setState(() {
-  //         _currentChat!.title = newTitle;
-  //       });
-  //     }
-
-  //     await _saveChatsToLocal();
-  //   } catch (e) {
-  //     setState(() => _isLoading = false);
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text('Ошибка общения с ИИ: $e')),
-  //     );
-  //   }
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -305,6 +268,7 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
                         ? kSidebarColor
                         : kDarkSidebarIconColor,
                     child: ListView.builder(
+                      key: ValueKey(chat.id),
                       padding: const EdgeInsets.all(16),
                       itemCount: chat.messages.length,
                       itemBuilder: (context, index) {
@@ -317,31 +281,9 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
                             constraints: BoxConstraints(
                               maxWidth: MediaQuery.of(context).size.width * 0.6,
                             ),
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 4),
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 10, horizontal: 14),
-                              decoration: BoxDecoration(
-                                color: msg.isUser
-                                    ? kSidebarActiveColor.withOpacity(0.8)
-                                    : Theme.of(context).brightness ==
-                                            Brightness.light
-                                        ? const Color.fromARGB(
-                                                255, 136, 155, 143)
-                                            .withOpacity(0.3)
-                                        : kSidebarIconColor.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Text(
-                                msg.text,
-                                style: TextStyle(
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.light
-                                      ? kSidebarIconColor
-                                      : kDarkSidebarIconColor,
-                                  fontSize: 16,
-                                ),
-                              ),
+                            child: ChatMessageWidget(
+                              text: msg.text,
+                              isUser: msg.isUser,
                             ),
                           ),
                         );
@@ -395,6 +337,49 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Виджет для плавной анимации и поддержки markdown у сообщений
+class ChatMessageWidget extends StatelessWidget {
+  final String text;
+  final bool isUser;
+
+  const ChatMessageWidget({required this.text, required this.isUser, Key? key})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 400),
+      child: Container(
+        key: ValueKey<String>(text),
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+        decoration: BoxDecoration(
+          color: isUser
+              ? kSidebarActiveColor.withOpacity(0.8)
+              : Theme.of(context).brightness == Brightness.light
+                  ? const Color.fromARGB(255, 136, 155, 143).withOpacity(0.3)
+                  : kSidebarIconColor.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: isUser
+            ? Text(
+                text,
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.light
+                      ? kSidebarIconColor
+                      : kDarkSidebarIconColor,
+                  fontSize: 16,
+                ),
+              )
+            : MarkdownBody(
+                data: text,
+                styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)),
+              ),
       ),
     );
   }
