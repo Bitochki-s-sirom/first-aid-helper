@@ -4,16 +4,7 @@ import (
 	"first_aid_companion/models"
 	"log"
 	"net/http"
-	"time"
 )
-
-type DrugCreation struct {
-	Name        string    `json:"name"`
-	Type        string    `json:"type"`
-	Description string    `json:"description"`
-	Expiry      time.Time `json:"expiry" example:"2025-07-12T23:45:00Z"`
-	Location    string    `json:"location"`
-}
 
 type DrugService struct {
 	DB          *models.DrugGorm
@@ -49,12 +40,12 @@ func (ds *DrugService) Drugs(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param input body DrugCreation true "login body"
+// @Param input body models.Drug true "login body"
 // @Success 200 {array} APIResponse
 // @Router /auth/drugs/add [post]
 func (ds *DrugService) AddDrug(w http.ResponseWriter, r *http.Request) {
-	newDrug := &DrugCreation{}
-	if err := ParseJSON(r, newDrug); err != nil {
+	drug := &models.Drug{}
+	if err := ParseJSON(r, drug); err != nil {
 		log.Printf("Error parsing JSON in AddDrug: %v", err)
 		WriteError(w, 500, err.Error())
 		return
@@ -67,9 +58,18 @@ func (ds *DrugService) AddDrug(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userId := user.ID
+	// drug := &Drug{
+	// 	Name:        new,
+	// 	Type:        newDrug.Type,
+	// 	Description: newDrug.Description,
+	// 	Expiry:      newDrug.Expiry,
+	// 	Location:    newDrug.Location,
+	// 	UserId:      user.ID,
+	// }
 
-	_, err = ds.DB.CreateDrug(newDrug.Name, newDrug.Type, newDrug.Description, newDrug.Location, newDrug.Expiry, userId)
+	drug.UserId = user.ID
+
+	_, err = ds.DB.CreateDrug(drug)
 	if err != nil {
 		log.Printf("Error creating drug in AddDrug: %v", err)
 		WriteError(w, 500, err.Error())

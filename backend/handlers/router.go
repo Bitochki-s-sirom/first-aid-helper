@@ -23,6 +23,7 @@ func AddRoutes(r *mux.Router, service *services.DBService) {
 	userService := controllers.UserService{DB: service.UserDB, CardService: &medCardService}
 	chatService := controllers.ChatService{DB: service.ChatDB, UserService: &userService}
 	messageService := controllers.MessageService{DB: service.MessageDB, UserService: &userService}
+	documentsService := controllers.DocumentService{DB: service.DocsDB, UserService: &userService}
 
 	r.HandleFunc("/", HomePage).Methods("GET")
 	r.HandleFunc("/signup", userService.SignUp).Methods("POST")
@@ -32,7 +33,9 @@ func AddRoutes(r *mux.Router, service *services.DBService) {
 	authRoute := r.PathPrefix("/auth").Subrouter()
 	authRoute.Use(RequireUserMiddleware)
 	authRoute.HandleFunc("/me", userService.Me).Methods("GET")
+
 	authRoute.HandleFunc("/drugs", drugsService.Drugs).Methods("GET")
+	authRoute.HandleFunc("/drugs/add", drugsService.AddDrug).Methods("POST")
 	authRoute.HandleFunc("/me", userService.UpdateMe).Methods("POST")
 	authRoute.HandleFunc("/chats", chatService.GetUsersChats).Methods("GET")
 	authRoute.HandleFunc("/new_chat", chatService.NewChat).Methods("POST")

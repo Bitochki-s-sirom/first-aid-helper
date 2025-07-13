@@ -7,13 +7,16 @@ import (
 )
 
 type Drug struct {
-	ID          uint `gorm:"primaryKey"`
-	Name        string
-	Type        string
-	Description string
-	Expiry      time.Time
-	Location    string
-	UserId      uint
+	ID           uint      `gorm:"primaryKey" json:"-"`
+	UserId       uint      `json:"-"`
+	Name         string    `json:"name"`
+	Type         string    `json:"type"`
+	Description  string    `json:"description"`
+	Expiry       time.Time `json:"expiry" example:"2025-07-12T23:45:00Z"`
+	Location     string    `json:"location"`
+	Manufacturer string    `json:"manufacturer"`
+	Dose         string    `json:"dose"`
+	Amount       string    `json:"amount"`
 }
 
 type DrugGorm struct {
@@ -24,16 +27,16 @@ func NewDrugGorm(db *gorm.DB) *DrugGorm {
 	return &DrugGorm{DB: db}
 }
 
-func (dg *DrugGorm) CreateDrug(name, drugType, desc, loc string, exp time.Time, userId uint) (*Drug, error) {
+func (dg *DrugGorm) CreateDrug(drug *Drug) (*Drug, error) {
 
-	drug := &Drug{
-		Name:        name,
-		Type:        drugType,
-		Description: desc,
-		Expiry:      exp,
-		Location:    loc,
-		UserId:      userId,
-	}
+	// drug := &Drug{
+	// 	Name:        name,
+	// 	Type:        drugType,
+	// 	Description: desc,
+	// 	Expiry:      exp,
+	// 	Location:    loc,
+	// 	UserId:      userId,
+	// }
 
 	if err := dg.DB.Table("drugs").Create(drug).Error; err != nil {
 		return nil, err
