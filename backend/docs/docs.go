@@ -115,6 +115,33 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/document/remove/{id}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "documents"
+                ],
+                "summary": "Remove one document by id",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/documents": {
             "get": {
                 "security": [
@@ -276,17 +303,6 @@ const docTemplate = `{
                     "drugs"
                 ],
                 "summary": "Remove one drug by id",
-                "parameters": [
-                    {
-                        "description": "login body",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/controllers.DrugCreationRequest"
-                        }
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",

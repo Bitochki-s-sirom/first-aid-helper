@@ -88,3 +88,10 @@ func (dg *DocumentGorm) UpdateDocument(id int, args map[string]interface{}) (*Do
 	}
 	return doc, nil
 }
+
+func (dg *DocumentGorm) DeleteDocumentById(id int) error {
+	if err := dg.DB.Table("documents").Where("id = ?", id).Delete(&Document{}).Error; err != nil {
+		return err
+	}
+	return nil
+}
