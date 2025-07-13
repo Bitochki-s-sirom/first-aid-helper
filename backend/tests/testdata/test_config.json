@@ -1,0 +1,6 @@
+{
+  "base_url": "http://localhost:8080",
+  "test_email": "testuser1@example.com",
+  "test_password": "secure123",
+  "test_name": "Test User"
+}
