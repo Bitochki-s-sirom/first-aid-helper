@@ -11,10 +11,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/login'),
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
+        body: jsonEncode({'email': email, 'password': password}),
       );
 
       if (response.statusCode == 200) {
@@ -52,9 +49,7 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> getInfo({
-    required String token,
-  }) async {
+  static Future<Map<String, dynamic>> getInfo({required String token}) async {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl/auth/me'),
@@ -71,8 +66,9 @@ class ApiService {
     }
   }
 
-  static Future<List<Map<String, dynamic>>> getDrugs(
-      {required String token}) async {
+  static Future<List<Map<String, dynamic>>> getDrugs({
+    required String token,
+  }) async {
     final response = await http.get(
       Uri.parse('$_baseUrl/auth/drugs'),
       headers: {'Authorization': 'Bearer $token'},
@@ -87,15 +83,18 @@ class ApiService {
         return data.cast<Map<String, dynamic>>();
       }
       throw Exception(
-          'Ожидался массив или объект с полем data, а пришло: $data');
+        'Ожидался массив или объект с полем data, а пришло: $data',
+      );
     } else {
       print('Ошибка сервера: ${response.body}');
       throw Exception('Failed to get drugs: ${response.statusCode}');
     }
   }
 
-  static Future<bool> addDrug(
-      {required String token, required Map<String, dynamic> drug}) async {
+  static Future<bool> addDrug({
+    required String token,
+    required Map<String, dynamic> drug,
+  }) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/auth/drugs/add'),
       headers: {
@@ -110,19 +109,20 @@ class ApiService {
     return response.statusCode == 200;
   }
 
-  static Future<bool> removeDrug(
-      {required String token, required int id}) async {
+  static Future<bool> removeDrug({
+    required String token,
+    required int id,
+  }) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/auth/drugs/remove/$id'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Authorization': 'Bearer $token'},
     );
     return response.statusCode == 200;
   }
 
-  static Future<List<Map<String, dynamic>>> getChats(
-      {required String token}) async {
+  static Future<List<Map<String, dynamic>>> getChats({
+    required String token,
+  }) async {
     final response = await http.get(
       Uri.parse('$_baseUrl/auth/chats'),
       headers: {'Authorization': 'Bearer $token'},
@@ -201,22 +201,24 @@ class ApiService {
     final stream = response.stream
         .transform(utf8.decoder)
         .transform(const LineSplitter())
-        .where((line) =>
-            line.startsWith('data: ') || line.startsWith('event: done'))
+        .where(
+          (line) => line.startsWith('data: ') || line.startsWith('event: done'),
+        )
         .map((line) {
-      if (line.startsWith('event: done') ||
-          line.trim() == 'data: [DONE]' ||
-          line.trim() == 'data: completed') {
-        return '[DONE]';
-      }
-      return line.substring(6).trim();
-    });
+          if (line.startsWith('event: done') ||
+              line.trim() == 'data: [DONE]' ||
+              line.trim() == 'data: completed') {
+            return '[DONE]';
+          }
+          return line.substring(6);
+        });
 
     yield* stream;
   }
 
-  static Future<List<Map<String, dynamic>>> getDocuments(
-      {required String token}) async {
+  static Future<List<Map<String, dynamic>>> getDocuments({
+    required String token,
+  }) async {
     final response = await http.get(
       Uri.parse('$_baseUrl/auth/documents'),
       headers: {'Authorization': 'Bearer $token'},
@@ -232,8 +234,10 @@ class ApiService {
     }
   }
 
-  static Future<bool> addDocument(
-      {required String token, required Map<String, dynamic> document}) async {
+  static Future<bool> addDocument({
+    required String token,
+    required Map<String, dynamic> document,
+  }) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/auth/documents/add'),
       headers: {
@@ -245,14 +249,14 @@ class ApiService {
     return response.statusCode == 200;
   }
 
-  static Future<bool> removeDocument(
-      {required String token, required int id}) async {
+  static Future<bool> removeDocument({
+    required String token,
+    required int id,
+  }) async {
     // Предполагается, что удаление реализовано как /auth/documents/remove/{id}
     final response = await http.post(
       Uri.parse('$_baseUrl/auth/documents/remove/$id'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Authorization': 'Bearer $token'},
     );
     return response.statusCode == 200;
   }
