@@ -66,6 +66,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 30),
                 TextFormField(
+                  cursorColor: kSidebarActiveColor,
                   controller: _emailController,
                   decoration: InputDecoration(
                     labelStyle: TextStyle(
@@ -100,7 +101,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
-                  cursorColor: kDarkSidebarIconColor,
+                  cursorColor: kSidebarActiveColor,
                   controller: _passwordController,
                   obscureText: true,
                   decoration: InputDecoration(
