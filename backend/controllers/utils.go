@@ -15,23 +15,29 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// APIResponse represents a standard API response structure.
 type APIResponse struct {
 	Status int         `json:"status"`
 	Data   interface{} `json:"data"`
 }
 
+// Error represents an error message returned by the API.
 type Error struct {
 	Message string `json:"message"`
 }
 
+// Claims represents the JWT claims structure including user information.
 type Claims struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
 	jwt.RegisteredClaims
 }
 
-var jwtKey = []byte("GOIDA")
+// jwtKey is the secret key used to sign JWT tokens.
+var jwtKey = "GOIDA"
 
+// ParseJSON parses the JSON payload from the request body into the given destination struct.
+// Returns an error if decoding fails. Ignores if ContentLength is 0.
 func ParseJSON(r *http.Request, dst interface{}) error {
 	if r.ContentLength == 0 {
 		return nil
@@ -42,15 +48,17 @@ func ParseJSON(r *http.Request, dst interface{}) error {
 	return nil
 }
 
+// WriteJSON writes the given data as a JSON response with the specified HTTP status code.
 func WriteJSON(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		http.Error(w, "Internal server error", 500)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
 }
 
+// WriteError writes an error message as a JSON response with the specified HTTP status code.
 func WriteError(w http.ResponseWriter, status int, message string) {
 	WriteJSON(w, status,
 		&APIResponse{
@@ -60,16 +68,19 @@ func WriteError(w http.ResponseWriter, status int, message string) {
 	)
 }
 
+// HashPassword generates a bcrypt hash of the password for secure storage.
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	return string(bytes), err
 }
 
+// CheckPasswordHash compares a plaintext password with a hashed password and returns true if they match.
 func CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }
 
+// GenerateJWT generates a signed JWT token string for a user with a 24-hour expiry.
 func GenerateJWT(userID, email string) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
 
@@ -86,13 +97,15 @@ func GenerateJWT(userID, email string) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtKey)
+	return token.SignedString([]byte(jwtKey))
 }
 
+// ParseJWT parses and validates a JWT token string, returning the Claims if valid.
 func ParseJWT(tokenStr string) (*Claims, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
+		// Provide the secret key for verification
+		return []byte(jwtKey), nil
 	})
 
 	if err != nil || !token.Valid {
@@ -102,13 +115,14 @@ func ParseJWT(tokenStr string) (*Claims, error) {
 	return claims, nil
 }
 
+// ExtractTokenFromHeader extracts the JWT token string from the Authorization header.
+// Expected header format: "Bearer <token>"
 func ExtractTokenFromHeader(r *http.Request) (string, error) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
 		return "", fmt.Errorf("Authorization header missing")
 	}
 
-	// Header format should be: "Bearer <token>"
 	parts := strings.SplitN(authHeader, " ", 2)
 	if len(parts) != 2 || parts[0] != "Bearer" {
 		return "", fmt.Errorf("Invalid Authorization header format")
@@ -117,6 +131,7 @@ func ExtractTokenFromHeader(r *http.Request) (string, error) {
 	return parts[1], nil
 }
 
+// GetUserFromContext retrieves the user ID from the request context, returning an error if not found.
 func GetUserFromContext(ctx context.Context) (int, error) {
 	claims, ok := ctx.Value("user").(*Claims)
 	if !ok || claims == nil {

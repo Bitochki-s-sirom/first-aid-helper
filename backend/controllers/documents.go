@@ -6,6 +6,7 @@ import (
 	"net/http"
 )
 
+// DocumentService handles operations related to user's documents, interfacing with the database.
 type DocumentService struct {
 	DB *models.DocumentGorm
 }
@@ -19,18 +20,22 @@ type DocumentService struct {
 // @Success 200 {array} models.Document
 // @Router /auth/documents [get]
 func (ds *DocumentService) Documents(w http.ResponseWriter, r *http.Request) {
+	// Get user id from request context
 	userID, err := GetUserFromContext(r.Context())
 	if err != nil {
 		log.Printf("Error fetching user: %v", err)
 		WriteError(w, 500, "database error")
 		return
 	}
+
+	// Get user's documents
 	docs, err := ds.DB.GetDocumentsByUserId(uint(userID))
 	if err != nil {
 		log.Printf("Error fetching documents: %v", err)
 		WriteError(w, 500, "database error")
 		return
 	}
+
 	WriteJSON(w, 200, docs)
 }
 
@@ -44,12 +49,14 @@ func (ds *DocumentService) Documents(w http.ResponseWriter, r *http.Request) {
 // @Router /auth/documents/add [post]
 func (ds *DocumentService) AddDocument(w http.ResponseWriter, r *http.Request) {
 	newDoc := &models.Document{}
+	// Get document description from JSON
 	if err := ParseJSON(r, newDoc); err != nil {
 		log.Printf("Error parsing JSON in AddDocument: %v", err)
 		WriteError(w, 500, err.Error())
 		return
 	}
 
+	// Get user from request context
 	userID, err := GetUserFromContext(r.Context())
 	if err != nil {
 		log.Printf("Error fetching user: %v", err)
@@ -57,8 +64,10 @@ func (ds *DocumentService) AddDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Cast int to uint
 	newDoc.UserID = uint(userID)
 
+	// Create a record in DB
 	_, err = ds.DB.CreateDocument(newDoc)
 	if err != nil {
 		log.Printf("Error creating document in AddDocument: %v", err)
@@ -67,4 +76,5 @@ func (ds *DocumentService) AddDocument(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, 200, nil)
+	log.Println("Successfully added a new document!")
 }
