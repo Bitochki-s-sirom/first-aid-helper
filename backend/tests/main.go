@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type APIResponse struct {
@@ -16,7 +18,7 @@ type APIResponse struct {
 
 const (
 	baseURL      = "http://localhost:8080"
-	testEmail    = "testuser5@example.com" // Single email for all tests
+	testEmail    = "testuser1@example.com"
 	testPassword = "secure123"
 	testName     = "Test User"
 )
@@ -333,6 +335,125 @@ func TestGetChatByID() {
 	log.Println("📨 Chat Messages:", result.Data)
 }
 
+func TestSendMessage() {
+	token := getAuthToken()
+
+	// prepare payload
+	payload := map[string]interface{}{
+		"chat_id": createdChatID,
+		"text":    "How are you today?",
+	}
+	body, _ := json.Marshal(payload)
+
+	// build request
+	req, err := http.NewRequest("POST", baseURL+"/auth/send_message", bytes.NewBuffer(body))
+	if err != nil {
+		log.Fatalf("Failed to create send_message request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatalf("send_message HTTP error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		log.Fatalf("Expected 200 OK, got %d: %s", resp.StatusCode, string(b))
+	}
+
+	// parse SSE stream
+	reader := bufio.NewReader(resp.Body)
+	var aiReply string
+	for {
+		line, err := reader.ReadString('\n')
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("Error reading stream: %v", err)
+		}
+		line = strings.TrimRight(line, "\r\n")
+		if line == "" {
+			// blank line = end of event
+			continue
+		}
+		// handle "event: done"
+		if strings.HasPrefix(line, "event:") {
+			if strings.HasSuffix(line, "done") {
+				break
+			}
+			continue
+		}
+		// handle data: prefix
+		if strings.HasPrefix(line, "data: ") {
+			aiReply += line[len("data: "):]
+		}
+	}
+
+	if len(aiReply) == 0 {
+		log.Fatal("Expected non-empty AI reply, got empty")
+	}
+	log.Println("✅ Received AI stream reply:", aiReply)
+}
+
+func TestGetChatMessages() {
+	token := getAuthToken()
+
+	url := fmt.Sprintf("%s/auth/chats/%d", baseURL, createdChatID)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatalf("GetChatMessages request error: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatalf("GetChatMessages HTTP error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		log.Fatalf("GetChatMessages failed: %s", string(body))
+	}
+
+	var result APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		log.Fatalf("GetChatMessages decode error: %v", err)
+	}
+
+	// Expect at least two messages: user then AI
+	msgs, ok := result.Data.([]interface{})
+	if !ok || len(msgs) < 2 {
+		log.Fatalf("Expected ≥2 messages in chat, got %v", result.Data)
+	}
+
+	last := msgs[len(msgs)-1].(map[string]interface{})
+	secondLast := msgs[len(msgs)-2].(map[string]interface{})
+
+	// verify roles/content keys exist
+	sender0, ok := secondLast["sender"].(float64)
+	if !ok || sender0 != 0 {
+		log.Fatalf("2nd-last message has wrong sender: %+v", secondLast["sender"])
+	}
+	if text0, _ := secondLast["text"].(string); text0 != "How are you today?" {
+		log.Fatalf("2nd-last message has wrong text: %q", text0)
+	}
+	sender1, ok := last["sender"].(float64)
+	if !ok || sender1 != 1 {
+		log.Fatalf("Last message has wrong sender: %+v", last["sender"])
+	}
+	if content, _ := last["text"].(string); len(content) == 0 {
+		log.Fatal("Last AI message content is empty")
+	}
+
+	log.Println("✅ Chat message list OK. User:", secondLast["text"], "AI:", last["text"])
+}
+
 func main() {
 	// Run tests in logical order
 	TestSignUp()
@@ -344,6 +465,7 @@ func main() {
 	TestCreateChat()
 	TestGetUserChats()
 	TestGetChatByID()
-
+	TestSendMessage()
+	TestGetChatMessages()
 	log.Println("🎉 All tests passed.")
 }

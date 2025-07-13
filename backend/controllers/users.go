@@ -8,17 +8,17 @@ import (
 	"regexp"
 	"strconv"
 
-	"context"
-
 	"gorm.io/gorm"
 )
 
+// User struct defines the expected user input for signup and login.
 type User struct {
 	Name     string `json:"name" example:"Aspirin"`
 	Email    string `json:"email" example:"Aspirin@asperinovish.ru"`
 	Password string `json:"password" example:"Aspirin"`
 }
 
+// UserUpdates defines the fields that a user can update in their profile.
 type UserUpdates struct {
 	Passport    string `json:"passport"`
 	Snils       string `json:"snils"`
@@ -28,11 +28,14 @@ type UserUpdates struct {
 	BloodType   string `json:"blood_type"`
 }
 
+// UserService provides methods to interact with user data and related services.
 type UserService struct {
-	DB          *models.UserGorm
-	CardService *MedicalCardService
+	DB          *models.UserGorm    // Database interface for user data
+	CardService *MedicalCardService // Service to handle medical card related logic
 }
 
+// Validate checks the User struct fields for basic validity.
+// The parameters allow skipping validation for name or email if needed.
 func (u *User) Validate(withoutName, withoutEmail bool) error {
 	if !withoutName && u.Name == "" {
 		return errors.New("empty name")
@@ -46,6 +49,7 @@ func (u *User) Validate(withoutName, withoutEmail bool) error {
 		return errors.New("invalid password length")
 	}
 
+	// Simple regex to check email format
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	if !emailRegex.MatchString(u.Email) {
 		return errors.New("wrong email format")
@@ -64,32 +68,36 @@ func (u *User) Validate(withoutName, withoutEmail bool) error {
 // @Router /signup [post]
 func (us *UserService) SignUp(w http.ResponseWriter, r *http.Request) {
 	newUser := &User{}
-	log.Printf("Processing SignUp request for email: %s", newUser.Email)
+
+	// Parse incoming JSON request body into newUser struct
 	if err := ParseJSON(r, newUser); err != nil {
 		log.Printf("Error parsing JSON in SignUp: %v", err)
 		WriteError(w, 500, err.Error())
 		return
 	}
 
+	// Validate user input fields (name, email, password)
 	if err := newUser.Validate(false, false); err != nil {
 		log.Printf("Validation error in SignUp: %v", err)
 		WriteError(w, 403, err.Error())
 		return
 	}
 
+	// Check if a user with this email already exists
 	user, err := us.DB.GetUserByEmail(newUser.Email)
 	if err == nil && user != nil {
 		log.Printf("User already exists: %s", newUser.Email)
 		WriteError(w, 409, "user already exists")
 		return
 	}
-
+	// Handle database errors (except record not found)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.Printf("Database error in SignUp: %v", err)
 		WriteError(w, 500, "database error")
 		return
 	}
 
+	// Hash the password before saving to DB
 	passwordHash, err := HashPassword(newUser.Password)
 	if err != nil {
 		log.Printf("Error hashing password in SignUp: %v", err)
@@ -97,6 +105,7 @@ func (us *UserService) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Create the user record in the database
 	createdUser, err := us.DB.CreateUser(newUser.Name, newUser.Email, passwordHash)
 	if err != nil {
 		log.Printf("Error creating user in SignUp: %v", err)
@@ -104,6 +113,7 @@ func (us *UserService) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Create an associated medical card for the user
 	medCard, err := us.CardService.CreateCard(createdUser.ID)
 	if err != nil {
 		log.Printf("Error creating Medical card in SignUp: %v", err)
@@ -111,6 +121,7 @@ func (us *UserService) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Assign the created medical card to the user and update the record
 	createdUser.MedicalCard = *medCard
 	if err := us.DB.UpdateUser(createdUser); err != nil {
 		log.Printf("Error assigning Medical card in SignUp: %v", err)
@@ -118,8 +129,10 @@ func (us *UserService) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Convert user ID to string for JWT generation
 	idAsString := strconv.Itoa(int(createdUser.ID))
 
+	// Generate JWT token for the newly created user
 	token, err := GenerateJWT(idAsString, createdUser.Email)
 	if err != nil {
 		log.Printf("Error generating JWT in SignUp: %v", err)
@@ -128,6 +141,8 @@ func (us *UserService) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("User signed up successfully: %s", createdUser.Email)
+
+	// Return JWT token in the response
 	WriteJSON(w, 200, &APIResponse{
 		Status: 200,
 		Data:   token,
@@ -144,19 +159,22 @@ func (us *UserService) SignUp(w http.ResponseWriter, r *http.Request) {
 // @Router /login [post]
 func (us *UserService) LogIn(w http.ResponseWriter, r *http.Request) {
 	user := &User{}
-	log.Printf("Processing LogIn request for email: %s", user.Email)
+
+	// Parse JSON body to extract login credentials
 	if err := ParseJSON(r, user); err != nil {
 		log.Printf("Error parsing JSON in LogIn: %v", err)
 		WriteError(w, 500, err.Error())
 		return
 	}
 
+	// Validate only the email and password (name not required for login)
 	if err := user.Validate(true, false); err != nil {
 		log.Printf("Validation error in LogIn: %v", err)
 		WriteError(w, 403, err.Error())
 		return
 	}
 
+	// Retrieve user record by email
 	found, err := us.DB.GetUserByEmail(user.Email)
 	if err != nil {
 		log.Printf("Database error in LogIn: %v", err)
@@ -164,14 +182,17 @@ func (us *UserService) LogIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Compare provided password with stored hash
 	if !CheckPasswordHash(user.Password, found.PasswordHash) {
 		log.Printf("Invalid password for email: %s", user.Email)
 		WriteError(w, 401, "not valid password")
 		return
 	}
 
+	// Convert user ID to string for token generation
 	idAsString := strconv.Itoa(int(found.ID))
 
+	// Generate JWT token upon successful authentication
 	token, err := GenerateJWT(idAsString, found.Email)
 	if err != nil {
 		log.Printf("Error generating JWT in LogIn: %v", err)
@@ -180,25 +201,12 @@ func (us *UserService) LogIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("User logged in successfully: %s", found.Email)
+
+	// Return the JWT token in the response
 	WriteJSON(w, 200, &APIResponse{
 		Status: 200,
 		Data:   token,
 	})
-}
-
-func (us *UserService) GetUserFromContext(ctx context.Context) (*models.User, error) {
-	claims, ok := ctx.Value("user").(*Claims)
-	if !ok || claims == nil {
-		return nil, errors.New("no user in context")
-	}
-
-	id, err := strconv.Atoi(claims.UserID)
-	if err != nil {
-		log.Printf("Error parsing user ID from context: %v", err)
-		return nil, err
-	}
-
-	return us.DB.GetUserByID(id)
 }
 
 // @Summary Get current user
@@ -209,13 +217,23 @@ func (us *UserService) GetUserFromContext(ctx context.Context) (*models.User, er
 // @Success 200 {object} APIResponse
 // @Router /me [get]
 func (us *UserService) Me(w http.ResponseWriter, r *http.Request) {
-	user, err := us.GetUserFromContext(r.Context())
-	if err != nil || user == nil {
+	// Get user ID from request context (set by authentication middleware)
+	userID, err := GetUserFromContext(r.Context())
+	if err != nil || userID == -1 {
 		log.Printf("Error getting user from context in Me: %v", err)
 		WriteError(w, 500, err.Error())
 		return
 	}
 
+	// Fetch user details by ID
+	user, err := us.DB.GetUserByID(userID)
+	if err != nil {
+		log.Printf("Error getting user by ID in Me: %v", err)
+		WriteError(w, 500, err.Error())
+		return
+	}
+
+	// Fetch user's medical card details
 	medCard, err := us.CardService.DB.GetCardByUserID(user.ID)
 	if err != nil {
 		log.Printf("Error getting medical card in Me: %v", err)
@@ -223,6 +241,7 @@ func (us *UserService) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Prepare response data combining user and medical card info
 	userData := map[string]interface{}{
 		"name":               user.Name,
 		"email":              user.Email,
@@ -235,19 +254,41 @@ func (us *UserService) Me(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("User data retrieved for email: %s", user.Email)
-	WriteJSON(w, 200, userData)
 
-	log.Printf("User name: %s", user.Name)
+	// Write combined user data as JSON response
+	WriteJSON(w, 200, userData)
 }
 
+// UpdateMe godoc
+// @Summary Update user's profile
+// @Description Updates user's personal details and medical card info
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param input body UserUpdates true "Fields to update"
+// @Success 200 {object} APIResponse
+// @Failure 400 {object} APIResponse "Bad request"
+// @Failure 500 {object} APIResponse "Server error"
+// @Router /auth/me [post]
 func (us *UserService) UpdateMe(w http.ResponseWriter, r *http.Request) {
-	user, err := us.GetUserFromContext(r.Context())
-	if err != nil || user == nil {
+	// Get user id from request context
+	userID, err := GetUserFromContext(r.Context())
+	if err != nil || userID == -1 {
 		log.Printf("Error getting user from context in Me: %v", err)
 		WriteError(w, 500, err.Error())
 		return
 	}
 
+	// Get user by id
+	user, err := us.DB.GetUserByID(userID)
+	if err != nil {
+		log.Printf("Error getting user from context in Me: %v", err)
+		WriteError(w, 500, err.Error())
+		return
+	}
+
+	// Parse JSON to UserUpdates instance
 	userUpdates := &UserUpdates{}
 	if err := ParseJSON(r, userUpdates); err != nil {
 		log.Printf("Error updating user in update Me while parsing JSON: %v", err)
@@ -255,6 +296,7 @@ func (us *UserService) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Replace non-empty fields
 	if userUpdates.Address != "" {
 		user.Address = userUpdates.Address
 	}
@@ -265,12 +307,14 @@ func (us *UserService) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		user.SNILS = userUpdates.Snils
 	}
 
+	// Save updates
 	if err := us.DB.UpdateUser(user); err != nil {
 		log.Printf("Error updating user data in Me: %v", err)
 		WriteError(w, 500, err.Error())
 		return
 	}
 
+	// Ger user's medical card
 	medCard, err := us.CardService.DB.GetCardByUserID(user.ID)
 	if err != nil {
 		log.Printf("Error getting medical card in Me: %v", err)
@@ -278,6 +322,7 @@ func (us *UserService) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Replace non-empty fields
 	if userUpdates.Allergies != "" {
 		medCard.Allergies = userUpdates.Allergies
 	}
@@ -288,6 +333,7 @@ func (us *UserService) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		medCard.BloodType = userUpdates.BloodType
 	}
 
+	// Save updates
 	if err := us.CardService.UpdateCard(medCard); err != nil {
 		log.Printf("Error getting medical card in Me: %v", err)
 		WriteError(w, 500, err.Error())
