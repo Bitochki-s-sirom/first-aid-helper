@@ -45,7 +45,7 @@ func (ds *DocumentService) Documents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteJSON(w, 200, docs)
+	WriteJSON(w, 200, &APIResponse{Status: 200, Data: docs})
 }
 
 // @Summary Add one document
