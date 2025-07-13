@@ -4,7 +4,10 @@ import (
 	"first_aid_companion/models"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 // DocumentService handles operations related to user's documents, interfacing with the database.
@@ -92,4 +95,29 @@ func (ds *DocumentService) AddDocument(w http.ResponseWriter, r *http.Request) {
 
 	WriteJSON(w, 200, nil)
 	log.Println("Successfully added a new document!")
+}
+
+// @Summary Remove one document by id
+// @Tags documents
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} APIResponse
+// @Router /auth/document/remove/{id} [post]
+func (ds *DocumentService) RemoveDocument(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		log.Printf("Error removing document in RemoveDocument: %v", err)
+		WriteError(w, 500, err.Error())
+		return
+	}
+
+	if err := ds.DB.DeleteDocumentById(id); err != nil {
+		log.Printf("Error removing document in RemoveDocument: %v", err)
+		WriteError(w, 500, err.Error())
+		return
+	}
+
+	log.Println("Successfully removed document!")
 }
