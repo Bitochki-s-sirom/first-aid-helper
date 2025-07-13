@@ -110,11 +110,11 @@ func (ds *DrugService) AddDrug(w http.ResponseWriter, r *http.Request) {
 
 // @Summary Remove one drug by id
 // @Tags drugs
-// @Accept
+// @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param input body DrugCreationRequest true "login body"
-// @Success 200 APIResponse
+// @Success 200 {object} APIResponse
 // @Router /auth/drugs/remove/{id} [post]
 func (ds *DrugService) RemoveDrug(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)

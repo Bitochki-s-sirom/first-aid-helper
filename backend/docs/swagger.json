@@ -4,6 +4,106 @@
         "contact": {}
     },
     "paths": {
+        "/auth/chats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a list of chat IDs and titles associated with the current user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Get user's chat sessions",
+                "responses": {
+                    "200": {
+                        "description": "[ {title: string, id: caht_id}, ...]",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to fetch user's chats",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.APIResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new chat with a temporary title for the current user and returns the chat ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Create a new chat",
+                "responses": {
+                    "200": {
+                        "description": "Data: chatID",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server or database error",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/chats/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the list of messages in a given chat, including message ID, sender, and text.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Get messages from a chat",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "[ {id: message_id, sender: 0/1, text: message_text}, ...]",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to fetch chat or messages",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/documents": {
             "get": {
                 "security": [
@@ -131,7 +231,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Drug"
+                            "$ref": "#/definitions/controllers.DrugCreationRequest"
                         }
                     }
                 ],
@@ -143,6 +243,146 @@
                             "items": {
                                 "$ref": "#/definitions/controllers.APIResponse"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/drugs/remove/{id}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "drugs"
+                ],
+                "summary": "Remove one drug by id",
+                "parameters": [
+                    {
+                        "description": "login body",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.DrugCreationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/me": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates user's personal details and medical card info",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Update user's profile",
+                "parameters": [
+                    {
+                        "description": "Fields to update",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.UserUpdates"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/send_message": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Stores the user's message, streams a response from the AI model, and stores the AI reply.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Send a message and receive AI response via SSE",
+                "parameters": [
+                    {
+                        "description": "Chat ID and user message",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.MessageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "streamed AI response",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or empty message",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server or streaming error",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.APIResponse"
                         }
                     }
                 }
@@ -250,6 +490,57 @@
                 }
             }
         },
+        "controllers.DrugCreationRequest": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "description": "Quantity of the drug available",
+                    "type": "string"
+                },
+                "description": {
+                    "description": "Description or purpose of the drug",
+                    "type": "string"
+                },
+                "dose": {
+                    "description": "Dosage information",
+                    "type": "string"
+                },
+                "expiry": {
+                    "description": "Expiry date of the drug",
+                    "type": "string",
+                    "example": "2025-07-12T23:45:00Z"
+                },
+                "location": {
+                    "description": "Storage location of the drug",
+                    "type": "string"
+                },
+                "manufacturer": {
+                    "description": "Manufacturer of the drug",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Name of the drug",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "Type or category of the drug",
+                    "type": "string"
+                }
+            }
+        },
+        "controllers.MessageRequest": {
+            "type": "object",
+            "properties": {
+                "chat_id": {
+                    "description": "ID of the chat session",
+                    "type": "integer"
+                },
+                "text": {
+                    "description": "Text content of the message sent by user",
+                    "type": "string"
+                }
+            }
+        },
         "controllers.User": {
             "type": "object",
             "properties": {
@@ -267,27 +558,54 @@
                 }
             }
         },
+        "controllers.UserUpdates": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "allergies": {
+                    "type": "string"
+                },
+                "blood_type": {
+                    "type": "string"
+                },
+                "chronic_cond": {
+                    "type": "string"
+                },
+                "passport": {
+                    "type": "string"
+                },
+                "snils": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Document": {
             "type": "object",
             "properties": {
                 "date": {
+                    "description": "Date the document was created or issued",
                     "type": "string",
                     "example": "2025-07-12T23:45:00Z"
                 },
                 "doctor": {
+                    "description": "Name of the doctor associated with the document",
                     "type": "string"
                 },
                 "file_data": {
-                    "description": "base64-encoded in JSON",
+                    "description": "File contents (binary), base64-encoded when serialized to JSON",
                     "type": "array",
                     "items": {
                         "type": "integer"
                     }
                 },
                 "name": {
+                    "description": "Name/title of the document",
                     "type": "string"
                 },
                 "type": {
+                    "description": "Type/category of document (e.g. prescription, report)",
                     "type": "string"
                 }
             }
@@ -296,38 +614,47 @@
             "type": "object",
             "properties": {
                 "amount": {
+                    "description": "Quantity of the drug available",
                     "type": "string"
                 },
                 "description": {
+                    "description": "Description or purpose of the drug",
                     "type": "string"
                 },
                 "dose": {
+                    "description": "Dosage information",
                     "type": "string"
                 },
                 "expiry": {
+                    "description": "Expiry date of the drug",
                     "type": "string",
                     "example": "2025-07-12T23:45:00Z"
                 },
+                "id": {
+                    "description": "Unique identifier for the drug (hidden from JSON)",
+                    "type": "integer"
+                },
                 "location": {
+                    "description": "Storage location of the drug",
                     "type": "string"
                 },
                 "manufacturer": {
+                    "description": "Manufacturer of the drug",
                     "type": "string"
                 },
                 "name": {
+                    "description": "Name of the drug",
                     "type": "string"
                 },
                 "type": {
+                    "description": "Type or category of the drug",
                     "type": "string"
+                },
+                "user_id": {
+                    "description": "ID of the user who owns the drug (hidden from JSON)",
+                    "type": "integer"
                 }
             }
-        }
-    },
-    "securityDefinitions": {
-        "BearerAuth": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
         }
     }
 }
