@@ -129,7 +129,6 @@ class ApiService {
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-
       if (data is Map && data.containsKey('data')) {
         if (data['data'] == null) {
           return [];
@@ -168,9 +167,11 @@ class ApiService {
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-
       if (data is Map && data.containsKey('data') && data['data'] is List) {
         return List<Map<String, dynamic>>.from(data['data']);
+      }
+      if (data is List) {
+        return data.cast<Map<String, dynamic>>();
       }
       throw Exception('Ожидался объект с полем data (массив сообщений)');
     } else {
@@ -212,5 +213,47 @@ class ApiService {
     });
 
     yield* stream;
+  }
+
+  static Future<List<Map<String, dynamic>>> getDocuments(
+      {required String token}) async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/auth/documents'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data is List) {
+        return data.cast<Map<String, dynamic>>();
+      }
+      throw Exception('Ожидался массив документов');
+    } else {
+      throw Exception('Failed to get documents: ${response.statusCode}');
+    }
+  }
+
+  static Future<bool> addDocument(
+      {required String token, required Map<String, dynamic> document}) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/auth/documents/add'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(document),
+    );
+    return response.statusCode == 200;
+  }
+
+  static Future<bool> removeDocument(
+      {required String token, required int id}) async {
+    // Предполагается, что удаление реализовано как /auth/documents/remove/{id}
+    final response = await http.post(
+      Uri.parse('$_baseUrl/auth/documents/remove/$id'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+    return response.statusCode == 200;
   }
 }

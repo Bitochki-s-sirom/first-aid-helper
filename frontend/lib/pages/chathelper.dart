@@ -88,16 +88,18 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
 
     try {
       final chats = await ApiService.getChats(token: _token!);
+      final Map<int, String> localTitles = {
+        for (final c in _chats) c.id: c.title,
+      };
       _chats = [];
       for (final chat in chats) {
         final id =
             chat['id'] is int ? chat['id'] : int.parse(chat['id'].toString());
-        final title = chat['title'] ?? 'Без названия';
+        final title = localTitles[id] ?? chat['title'] ?? 'Без названия';
         final messages = await _loadMessages(id);
         _chats.add(ChatSession(id: id, title: title, messages: messages));
       }
 
-      // Если чатов нет, создаем первый чат
       if (_chats.isEmpty) {
         await _addNewChat();
         return;
@@ -126,7 +128,7 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
       return msgs
           .map((m) => ChatMessage(
                 text: m['text'] ?? '',
-                isUser: m['sender'] == 1,
+                isUser: m['sender'] == 0 || m['sender'].toString() == '0',
               ))
           .toList();
     } catch (_) {
@@ -173,7 +175,6 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
       final aiMessage = ChatMessage(text: '', isUser: false);
       setState(() {
         _currentChat!.messages.add(aiMessage);
-        // Запоминаем, что это новое сообщение ИИ для анимации
         _lastAnimatedAiMsgChatId = _currentChat!.id;
         _lastAnimatedAiMsgIndex = _currentChat!.messages.length - 1;
       });
@@ -182,16 +183,22 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
         token: _token!,
         chatId: _currentChat!.id,
         message: text,
-      ).listen((chunk) {
+      ).listen((chunk) async {
         if (chunk == '[DONE]') {
           setState(() => _isLoading = false);
-          _saveChatsToLocal();
-
-          // Update chat title if first message
           if (_currentChat!.messages.where((m) => m.isUser).length == 1) {
             final newTitle =
                 text.length > 20 ? '${text.substring(0, 20)}...' : text;
-            setState(() => _currentChat!.title = newTitle);
+            final chatIndex =
+                _chats.indexWhere((c) => c.id == _currentChat!.id);
+            if (chatIndex != -1) {
+              setState(() {
+                _chats[chatIndex].title = newTitle;
+              });
+              await _saveChatsToLocal();
+            }
+          } else {
+            await _saveChatsToLocal();
           }
         } else {
           setState(() => aiMessage.text += chunk);
