@@ -15,6 +15,78 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/auth/documents": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all user documents in json format",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "documents"
+                ],
+                "summary": "Get all documents",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Document"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/documents/add": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "documents"
+                ],
+                "summary": "Add one document",
+                "parameters": [
+                    {
+                        "description": "document body",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Document"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/controllers.APIResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/auth/drugs": {
             "get": {
                 "security": [
@@ -40,6 +112,47 @@ const docTemplate = `{
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/models.Drug"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/drugs/add": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "drugs"
+                ],
+                "summary": "Add one drug",
+                "parameters": [
+                    {
+                        "description": "login body",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Drug"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/controllers.APIResponse"
                             }
                         }
                     }
@@ -152,12 +265,40 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "email": {
+                    "type": "string",
+                    "example": "Aspirin@asperinovish.ru"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Aspirin"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "Aspirin"
+                }
+            }
+        },
+        "models.Document": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string",
+                    "example": "2025-07-12T23:45:00Z"
+                },
+                "doctor": {
                     "type": "string"
+                },
+                "file_data": {
+                    "description": "base64-encoded in JSON",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "name": {
                     "type": "string"
                 },
-                "password": {
+                "type": {
                     "type": "string"
                 }
             }
@@ -165,16 +306,26 @@ const docTemplate = `{
         "models.Drug": {
             "type": "object",
             "properties": {
+                "amount": {
+                    "type": "string"
+                },
                 "description": {
                     "type": "string"
                 },
-                "expiry": {
+                "dose": {
                     "type": "string"
                 },
-                "id": {
-                    "type": "integer"
+                "expiry": {
+                    "type": "string",
+                    "example": "2025-07-12T23:45:00Z"
                 },
                 "location": {
+                    "type": "string"
+                },
+                "manufacturer": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 },
                 "type": {

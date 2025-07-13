@@ -7,7 +7,8 @@ import (
 )
 
 type DrugService struct {
-	DB *models.DrugGorm
+	DB          *models.DrugGorm
+	UserService *UserService
 }
 
 // @Summary Get all drugs
@@ -19,11 +20,61 @@ type DrugService struct {
 // @Success 200 {array} models.Drug
 // @Router /auth/drugs [get]
 func (ds *DrugService) Drugs(w http.ResponseWriter, r *http.Request) {
-	drugs, err := ds.DB.GetAllDrugs()
+	user, err := ds.UserService.GetUserFromContext(r.Context())
+	if err != nil {
+		log.Printf("Error fetching user: %v", err)
+		WriteError(w, 500, "database error")
+		return
+	}
+	drugs, err := ds.DB.GetDrugsByUserId(user.ID)
 	if err != nil {
 		log.Printf("Error fetching drugs: %v", err)
 		WriteError(w, 500, "database error")
 		return
 	}
 	WriteJSON(w, 200, drugs)
+}
+
+// @Summary Add one drug
+// @Tags drugs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param input body models.Drug true "login body"
+// @Success 200 {array} APIResponse
+// @Router /auth/drugs/add [post]
+func (ds *DrugService) AddDrug(w http.ResponseWriter, r *http.Request) {
+	drug := &models.Drug{}
+	if err := ParseJSON(r, drug); err != nil {
+		log.Printf("Error parsing JSON in AddDrug: %v", err)
+		WriteError(w, 500, err.Error())
+		return
+	}
+
+	user, err := ds.UserService.GetUserFromContext(r.Context())
+	if err != nil {
+		log.Printf("Error fetching user: %v", err)
+		WriteError(w, 500, "database error")
+		return
+	}
+
+	// drug := &Drug{
+	// 	Name:        new,
+	// 	Type:        newDrug.Type,
+	// 	Description: newDrug.Description,
+	// 	Expiry:      newDrug.Expiry,
+	// 	Location:    newDrug.Location,
+	// 	UserId:      user.ID,
+	// }
+
+	drug.UserId = user.ID
+
+	_, err = ds.DB.CreateDrug(drug)
+	if err != nil {
+		log.Printf("Error creating drug in AddDrug: %v", err)
+		WriteError(w, 500, err.Error())
+		return
+	}
+
+	WriteJSON(w, 200, nil)
 }

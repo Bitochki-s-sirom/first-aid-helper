@@ -14,9 +14,9 @@ import (
 )
 
 type User struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Name     string `json:"name" example:"Aspirin"`
+	Email    string `json:"email" example:"Aspirin@asperinovish.ru"`
+	Password string `json:"password" example:"Aspirin"`
 }
 
 type UserUpdates struct {

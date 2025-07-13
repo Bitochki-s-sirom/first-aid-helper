@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 )
@@ -14,7 +16,7 @@ type APIResponse struct {
 
 const (
 	baseURL      = "http://localhost:8080"
-	testEmail    = "testuser3@example.com" // Single email for all tests
+	testEmail    = "testuser5@example.com" // Single email for all tests
 	testPassword = "secure123"
 	testName     = "Test User"
 )
@@ -239,6 +241,98 @@ func TestProtectedEndpoint() {
 	}
 }
 
+var createdChatID uint
+
+func TestCreateChat() {
+	token := getAuthToken()
+
+	req, err := http.NewRequest("POST", baseURL+"/auth/new_chat", nil)
+	if err != nil {
+		log.Fatalf("CreateChat request failed: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatalf("CreateChat HTTP error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		log.Fatalf("CreateChat failed: %s", string(body))
+	}
+
+	var result APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		log.Fatalf("CreateChat decode error: %v", err)
+	}
+
+	idFloat, ok := result.Data.(float64)
+	if !ok {
+		log.Fatal("CreateChat response ID not valid")
+	}
+	createdChatID = uint(idFloat)
+	log.Println("✅ Created chat with ID:", createdChatID)
+}
+
+func TestGetUserChats() {
+	token := getAuthToken()
+
+	req, err := http.NewRequest("GET", baseURL+"/auth/chats", nil)
+	if err != nil {
+		log.Fatalf("GetUserChats request error: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatalf("GetUserChats HTTP error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		log.Fatalf("GetUserChats failed: %s", string(body))
+	}
+
+	var result APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		log.Fatalf("GetUserChats decode error: %v", err)
+	}
+
+	log.Println("📋 User Chats:", result.Data)
+}
+
+func TestGetChatByID() {
+	token := getAuthToken()
+
+	url := fmt.Sprintf("%s/auth/chats/%d", baseURL, createdChatID)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatalf("GetChatByID request error: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatalf("GetChatByID HTTP error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		log.Fatalf("GetChatByID failed: %s", string(body))
+	}
+
+	var result APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		log.Fatalf("GetChatByID decode error: %v", err)
+	}
+
+	log.Println("📨 Chat Messages:", result.Data)
+}
+
 func main() {
 	// Run tests in logical order
 	TestSignUp()
@@ -247,7 +341,9 @@ func main() {
 	TestUpdateUserInfo()
 	TestUpdateMedicalCard()
 	TestPartialUpdates()
+	TestCreateChat()
+	TestGetUserChats()
+	TestGetChatByID()
 
-	// Cleanup after all tests
-	log.Println("All tests completed successfully")
+	log.Println("🎉 All tests passed.")
 }

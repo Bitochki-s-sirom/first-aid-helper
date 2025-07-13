@@ -14,7 +14,6 @@ type User struct {
 	Address      string
 	Groups       []Group     `gorm:"many2many:user_groups;"`
 	MedicalCard  MedicalCard `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Chats        []Chat
 	Documents    []Document
 }
 

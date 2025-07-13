@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -57,8 +58,8 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// Database connection
-	// dsn := `host= 82.202.138.91 user=postgres password=h,RVN/G&iK£kkB75s>C"%Q9}1F;nNz dbname=firstaid port=5432 sslmode=disable`
-	dsn := `host=localhost user=postgres password=1121 dbname=firstaid port=5432 sslmode=disable`
+	dsn := `host= 82.202.138.91 user=postgres password=h,RVN/G&iK£kkB75s>C"%Q9}1F;nNz dbname=firstaid port=5432 sslmode=disable`
+	// dsn := `host=localhost user=postgres password=1121 dbname=firstaid port=5432 sslmode=disable`
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
@@ -72,6 +73,14 @@ func main() {
 	}
 	log.Println("Database automigration completed successfully")
 
+	corsMiddleware := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"}, // Allow all origins
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
+		Debug:            true, // Enable for troubleshooting
+	})
+
 	// Set up router
 	router := mux.NewRouter()
 
@@ -82,10 +91,11 @@ func main() {
 	handlers.AddRoutes(router, dbService)
 	log.Println("Routes configured successfully")
 
+	handler := corsMiddleware.Handler(router)
 	// Configure and start server
 	srv := &http.Server{
 		Addr:    ":8080",
-		Handler: router,
+		Handler: handler,
 	}
 
 	log.Println("Starting server on :8080")
