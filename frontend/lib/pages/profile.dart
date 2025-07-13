@@ -19,19 +19,16 @@ class _ProfilePageState extends State<ProfilePage> {
   late String snils = '1';
   bool _isChronicExpanded = false;
 
-  // Контроллеры для редактируемых полей
   late TextEditingController _bloodController;
   late TextEditingController _passController;
   late TextEditingController _snilsController;
   late TextEditingController _chronicController;
 
-  // Фокус ноды для управления курсором
   late FocusNode _bloodFocusNode;
   late FocusNode _passFocusNode;
   late FocusNode _snilsFocusNode;
   late FocusNode _chronicFocusNode;
 
-  // Оригинальные значения для сравнения
   late String _originalBlood;
   late String _originalPass;
   late String _originalSnils;
@@ -51,7 +48,6 @@ class _ProfilePageState extends State<ProfilePage> {
     _snilsFocusNode = FocusNode();
     _chronicFocusNode = FocusNode();
 
-    // Сохраняем оригинальные значения
     _originalBlood = blood;
     _originalPass = pass;
     _originalSnils = snils;
@@ -84,13 +80,11 @@ class _ProfilePageState extends State<ProfilePage> {
           pass = authData?['passport'] ?? 'Гость';
           snils = authData?['snils'] ?? 'Гость';
 
-          // Обновляем контроллеры
           _bloodController.text = blood;
           _passController.text = pass;
           _snilsController.text = snils;
           _chronicController.text = chronic;
 
-          // Обновляем оригинальные значения
           _originalBlood = blood;
           _originalPass = pass;
           _originalSnils = snils;
@@ -126,7 +120,7 @@ class _ProfilePageState extends State<ProfilePage> {
             label,
             style: TextStyle(
               fontSize: 16,
-              color: isDark ? kDarkBackgroundColor : kBackgroundColor,
+              color: isDark ? kDarkBackgroundColor : kSidebarActiveColor,
             ),
           ),
           Row(
@@ -161,7 +155,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 icon: Icon(
                   Icons.check,
                   size: 20,
-                  color: hasChanges ? kSidebarActiveColor : kBackgroundColor,
+                  color: hasChanges
+                      ? kSidebarActiveColor
+                      : Theme.of(context).brightness == Brightness.light
+                          ? kBackgroundColor
+                          : kDarkSidebarIconColor,
                 ),
                 onPressed: hasChanges
                     ? () {
@@ -211,7 +209,7 @@ class _ProfilePageState extends State<ProfilePage> {
             'Хронические заболевания',
             style: TextStyle(
               fontSize: 16,
-              color: isDark ? kDarkBackgroundColor : kBackgroundColor,
+              color: isDark ? kDarkBackgroundColor : kSidebarActiveColor,
             ),
           ),
           trailing: IconButton(

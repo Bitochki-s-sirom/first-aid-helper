@@ -8,7 +8,6 @@ import 'pages/records.dart';
 import 'widgets/squareavatar.dart';
 import 'services/api_service.dart';
 import 'services/local_storage.dart';
-import 'utils/validators.dart';
 import 'pages/loginpage.dart';
 import 'pages/signuppage.dart';
 
@@ -156,7 +155,7 @@ class _DashboardPageState extends State<DashboardPage> {
     {'icon': Icons.person, 'label': 'Profile'},
     {'icon': Icons.medical_information_outlined, 'label': 'Medical records'},
     {'icon': Icons.chat_rounded, 'label': 'Chat helper'},
-    {'icon': Icons.calendar_month, 'label': 'Medications runout'},
+    {'icon': Icons.medication_outlined, 'label': 'Medications'},
   ];
 
   final List<Widget> pages = const [

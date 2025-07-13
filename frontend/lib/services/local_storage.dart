@@ -11,6 +11,8 @@ class LocalStorage {
   static const String _blood = 'blood';
   static const String _chronic = 'chronic';
   static const String _baseUrl = 'http://localhost:8080';
+  static const String _medsKey = 'medications';
+  static const String _chatsKey = 'chats';
 
   static Future<void> saveAuthData(
       String token, Map<String, dynamic> info) async {
@@ -117,5 +119,35 @@ class LocalStorage {
       print('Error updating auth data: $e');
       return false;
     }
+  }
+
+  static Future<void> saveMeds(List<Map<String, dynamic>> meds) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_medsKey, jsonEncode(meds));
+  }
+
+  static Future<List<Map<String, dynamic>>> getMeds() async {
+    final prefs = await SharedPreferences.getInstance();
+    final medsString = prefs.getString(_medsKey);
+    if (medsString != null) {
+      final List<dynamic> jsonList = jsonDecode(medsString);
+      return jsonList.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  static Future<void> saveChats(List<Map<String, dynamic>> chats) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_chatsKey, jsonEncode(chats));
+  }
+
+  static Future<List<Map<String, dynamic>>> getChats() async {
+    final prefs = await SharedPreferences.getInstance();
+    final chatsString = prefs.getString(_chatsKey);
+    if (chatsString != null) {
+      final List<dynamic> jsonList = jsonDecode(chatsString);
+      return jsonList.cast<Map<String, dynamic>>();
+    }
+    return [];
   }
 }
