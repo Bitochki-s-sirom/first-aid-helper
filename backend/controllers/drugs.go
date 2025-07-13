@@ -53,7 +53,7 @@ func (ds *DrugService) Drugs(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, 500, "database error")
 		return
 	}
-	WriteJSON(w, 200, drugs)
+	WriteJSON(w, 200, &APIResponse{Status: 200, Data: drugs})
 }
 
 // @Summary Add one drug

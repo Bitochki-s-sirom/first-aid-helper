@@ -454,6 +454,140 @@ func TestGetChatMessages() {
 	log.Println("✅ Chat message list OK. User:", secondLast["text"], "AI:", last["text"])
 }
 
+var createdDrugID int
+
+func TestAddDrug() {
+	token := getAuthToken()
+
+	// Build drug payload
+	payload := map[string]interface{}{
+		"name":         "Ibuprofen",
+		"type":         "Painkiller",
+		"description":  "Used to reduce fever and treat pain or inflammation",
+		"expiry":       "2026-01-01T00:00:00Z",
+		"location":     "Home Medicine Cabinet",
+		"manufacturer": "Pfizer",
+		"dose":         "200mg",
+		"amount":       "30 tablets",
+	}
+	body, _ := json.Marshal(payload)
+
+	req, err := http.NewRequest("POST", baseURL+"/auth/drugs/add", bytes.NewBuffer(body))
+	if err != nil {
+		log.Fatalf("AddDrug request creation failed: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatalf("AddDrug HTTP error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		data, _ := io.ReadAll(resp.Body)
+		log.Fatalf("AddDrug failed with status %d: %s", resp.StatusCode, string(data))
+	}
+
+	log.Println("✅ Successfully added drug.")
+}
+
+func TestListDrugs() {
+	token := getAuthToken()
+
+	req, err := http.NewRequest("GET", baseURL+"/auth/drugs", nil)
+	if err != nil {
+		log.Fatalf("ListDrugs request error: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatalf("ListDrugs HTTP error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		log.Fatalf("ListDrugs failed: %s", string(body))
+	}
+
+	var result APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		log.Fatalf("ListDrugs decode error: %v", err)
+	}
+
+	drugs, ok := result.Data.([]interface{})
+	if !ok || len(drugs) == 0 {
+		log.Fatalf("Expected non-empty drug list, got: %v", result.Data)
+	}
+
+	// Extract latest drug (the one we added)
+	last := drugs[len(drugs)-1].(map[string]interface{})
+	createdDrugIDFloat, ok := last["id"].(float64)
+	if !ok {
+		log.Fatal("Drug ID not found in drug entry")
+	}
+	createdDrugID = int(createdDrugIDFloat)
+
+	log.Printf("📦 Listed %d drugs. Last added drug ID: %d", len(drugs), createdDrugID)
+}
+
+func TestRemoveDrug() {
+	token := getAuthToken()
+
+	url := fmt.Sprintf("%s/auth/drugs/remove/%d", baseURL, createdDrugID)
+	req, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		log.Fatalf("RemoveDrug request creation failed: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatalf("RemoveDrug HTTP error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		log.Fatalf("RemoveDrug failed: %s", string(body))
+	}
+
+	log.Printf("🗑️ Successfully removed drug with ID %d.", createdDrugID)
+}
+
+func TestVerifyDrugRemoved() {
+	token := getAuthToken()
+
+	req, _ := http.NewRequest("GET", baseURL+"/auth/drugs", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatalf("VerifyDrugRemoved HTTP error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	var result APIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		log.Fatalf("VerifyDrugRemoved decode error: %v", err)
+	}
+
+	drugs, ok := result.Data.([]interface{})
+	if !ok {
+		log.Fatal("Drugs data is not a list")
+	}
+	for _, d := range drugs {
+		entry := d.(map[string]interface{})
+		if int(entry["id"].(float64)) == createdDrugID {
+			log.Fatalf("Drug ID %d still found after deletion", createdDrugID)
+		}
+	}
+	log.Println("✅ Drug deletion verified.")
+}
+
 func main() {
 	// Run tests in logical order
 	TestSignUp()
@@ -467,5 +601,10 @@ func main() {
 	TestGetChatByID()
 	TestSendMessage()
 	TestGetChatMessages()
+	TestAddDrug()
+	TestListDrugs()
+	TestRemoveDrug()
+	TestVerifyDrugRemoved()
+
 	log.Println("🎉 All tests passed.")
 }
