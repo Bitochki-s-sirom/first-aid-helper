@@ -107,7 +107,8 @@ func (ms *MessageService) NewMessage(w http.ResponseWriter, r *http.Request) {
 		aiResponse += part.Text
 
 		// Write partial text as an SSE data event to client
-		fmt.Fprintf(w, "data: %s\n\n", strings.ReplaceAll(part.Text, "\n", "\\n"))
+		// fmt.Fprintf(w, "data: %s\n\n", strings.ReplaceAll(part.Text, "\n", "\\n"))
+		fmt.Fprintf(w, "data: %s\n\n", part.Text)
 		flusher.Flush() // Flush response to client immediately
 	}
 
