@@ -146,3 +146,17 @@ func GetUserFromContext(ctx context.Context) (int, error) {
 
 	return id, nil
 }
+
+// Custom time to suit flutter format
+type CustomTime time.Time
+
+// Method for JSON unmarshaling
+func (ct *CustomTime) UnmarshalJSON(b []byte) error {
+	s := strings.Trim(string(b), ``)
+	t, err := time.Parse("2006-01-02T15:04:05.000", s)
+	if err != nil {
+		return err
+	}
+	*ct = CustomTime(t)
+	return nil
+}
