@@ -9,9 +9,11 @@ import (
 	"first_aid_companion/services"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"github.com/rs/cors"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -57,8 +59,14 @@ func main() {
 	// Initialize logger with timestamp and file info
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	// Database connection
-	dsn := `host= 82.202.138.91 user=postgres password=h,RVN/G&iK£kkB75s>C"%Q9}1F;nNz dbname=firstaid port=5432 sslmode=disable`
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	dsn := os.Getenv("DSN")
+
 	// dsn := `host=localhost user=postgres password=1121 dbname=firstaid port=5432 sslmode=disable`
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -67,7 +75,7 @@ func main() {
 	log.Println("Successfully connected to database")
 
 	// Initialize DB service and automigrate
-	dbService := services.NewDBService(db)
+	dbService := services.NewDBService(db, apiKey)
 	if err := dbService.Automigrate(); err != nil {
 		log.Fatalf("Failed to automigrate database: %v", err)
 	}

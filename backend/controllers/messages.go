@@ -7,46 +7,26 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
-	"github.com/joho/godotenv"
 	"google.golang.org/genai"
 )
 
 type ChatMessage struct {
-	Role    string `json:"role"` // "user" or "model"
 	Content string `json:"content"`
 }
 
 type MessageRequest struct {
-	ChatID   uint          `json:"chat_id"`
-	Message  string        `json:"text"`
-	Messages []ChatMessage `json:"messages"` // Optional: full chat history
+	ChatID  uint   `json:"chat_id"`
+	Message string `json:"text"`
 }
 
 type MessageService struct {
-	DB          *models.MessageGorm
-	UserService *UserService
+	ApiKey string
+	DB     *models.MessageGorm
 }
 
-const (
-	LLMUserID = 0 // System user ID for LLM responses
-	modelName = "models/gemini-pro"
-)
-
 func (ms *MessageService) NewMessage(w http.ResponseWriter, r *http.Request) {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Error loading .env file")
-	}
-
-	user, err := ms.UserService.GetUserFromContext(r.Context())
-	if err != nil || user == nil {
-		WriteError(w, http.StatusUnauthorized, "session expired or invalid")
-		return
-	}
-
 	var request MessageRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid JSON format")
@@ -57,7 +37,7 @@ func (ms *MessageService) NewMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := ms.DB.AddMessage(request.ChatID, user.ID, request.Message); err != nil {
+	if _, err := ms.DB.AddMessage(request.ChatID, 0, request.Message); err != nil {
 		log.Printf("DB save error: %v", err)
 		WriteError(w, http.StatusInternalServerError, "failed to save message")
 		return
@@ -72,11 +52,9 @@ func (ms *MessageService) NewMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiKey := os.Getenv("GEMINI_API_KEY")
-
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey:  apiKey,
+		APIKey:  ms.ApiKey,
 		Backend: genai.BackendGeminiAPI,
 	})
 	if err != nil {
@@ -92,14 +70,22 @@ func (ms *MessageService) NewMessage(w http.ResponseWriter, r *http.Request) {
 		nil,
 	)
 
+	aiResponse := ""
 	for chunk, _ := range stream {
 		part := chunk.Candidates[0].Content.Parts[0]
-		fmt.Fprintf(w, "data: %s\n\n", part)
+		aiResponse += part.Text
+		fmt.Fprintf(w, "data: %s\n\n", part.Text)
 		flusher.Flush()
 	}
 
 	fmt.Fprintf(w, "event: done\ndata: [stream closed]\n\n")
 	flusher.Flush()
 
-	log.Panicln("Successfully generated the response!")
+	if _, err := ms.DB.AddMessage(request.ChatID, 1, aiResponse); err != nil {
+		WriteError(w, http.StatusInternalServerError, "failed to save LLM response")
+		log.Fatal(err)
+		return
+	}
+
+	log.Println("Successfully generated the response!")
 }

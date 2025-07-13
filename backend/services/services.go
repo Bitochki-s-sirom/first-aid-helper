@@ -16,15 +16,18 @@ type DBService struct {
 	ChatDB    *models.ChatGorm
 	DocsDB    *models.DocumentGorm
 	MessageDB *models.MessageGorm
+	ApiKey    string
 }
 
-func NewDBService(db *gorm.DB) *DBService {
+func NewDBService(db *gorm.DB, ApiKey string) *DBService {
 	return &DBService{
 		DB:        db,
 		UserDB:    models.NewUserGorm(db),
 		DrugDB:    models.NewDrugGorm(db),
 		MedCardDB: models.NewMedCardGorm(db),
 		ChatDB:    models.NewChatGorm(db),
+		MessageDB: models.NewMessageGorm(db),
+		ApiKey:    ApiKey,
 	}
 }
 

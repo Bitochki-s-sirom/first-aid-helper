@@ -7,8 +7,7 @@ import (
 )
 
 type DocumentService struct {
-	DB          *models.DocumentGorm
-	UserService *UserService
+	DB *models.DocumentGorm
 }
 
 // @Summary Get all documents
@@ -20,13 +19,13 @@ type DocumentService struct {
 // @Success 200 {array} models.Document
 // @Router /auth/documents [get]
 func (ds *DocumentService) Documents(w http.ResponseWriter, r *http.Request) {
-	user, err := ds.UserService.GetUserFromContext(r.Context())
+	userID, err := GetUserFromContext(r.Context())
 	if err != nil {
 		log.Printf("Error fetching user: %v", err)
 		WriteError(w, 500, "database error")
 		return
 	}
-	docs, err := ds.DB.GetDocumentsByUserId(user.ID)
+	docs, err := ds.DB.GetDocumentsByUserId(uint(userID))
 	if err != nil {
 		log.Printf("Error fetching documents: %v", err)
 		WriteError(w, 500, "database error")
@@ -51,14 +50,14 @@ func (ds *DocumentService) AddDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := ds.UserService.GetUserFromContext(r.Context())
+	userID, err := GetUserFromContext(r.Context())
 	if err != nil {
 		log.Printf("Error fetching user: %v", err)
 		WriteError(w, 500, "database error")
 		return
 	}
 
-	newDoc.UserID = user.ID
+	newDoc.UserID = uint(userID)
 
 	_, err = ds.DB.CreateDocument(newDoc)
 	if err != nil {

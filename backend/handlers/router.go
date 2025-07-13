@@ -21,9 +21,9 @@ func AddRoutes(r *mux.Router, service *services.DBService) {
 	drugsService := controllers.DrugService{DB: service.DrugDB}
 	medCardService := controllers.MedicalCardService{DB: service.MedCardDB}
 	userService := controllers.UserService{DB: service.UserDB, CardService: &medCardService}
-	chatService := controllers.ChatService{DB: service.ChatDB, UserService: &userService}
-	messageService := controllers.MessageService{DB: service.MessageDB, UserService: &userService}
-	documentsService := controllers.DocumentService{DB: service.DocsDB, UserService: &userService}
+	chatService := controllers.ChatService{DB: service.ChatDB}
+	messageService := controllers.MessageService{ApiKey: service.ApiKey, DB: service.MessageDB}
+	documentsService := controllers.DocumentService{DB: service.DocsDB}
 
 	r.HandleFunc("/", HomePage).Methods("GET")
 	r.HandleFunc("/signup", userService.SignUp).Methods("POST")

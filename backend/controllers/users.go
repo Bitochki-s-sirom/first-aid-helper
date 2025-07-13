@@ -8,8 +8,6 @@ import (
 	"regexp"
 	"strconv"
 
-	"context"
-
 	"gorm.io/gorm"
 )
 
@@ -186,21 +184,6 @@ func (us *UserService) LogIn(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (us *UserService) GetUserFromContext(ctx context.Context) (*models.User, error) {
-	claims, ok := ctx.Value("user").(*Claims)
-	if !ok || claims == nil {
-		return nil, errors.New("no user in context")
-	}
-
-	id, err := strconv.Atoi(claims.UserID)
-	if err != nil {
-		log.Printf("Error parsing user ID from context: %v", err)
-		return nil, err
-	}
-
-	return us.DB.GetUserByID(id)
-}
-
 // @Summary Get current user
 // @Description Retrieves the authenticated user's details
 // @Tags users
@@ -209,8 +192,15 @@ func (us *UserService) GetUserFromContext(ctx context.Context) (*models.User, er
 // @Success 200 {object} APIResponse
 // @Router /me [get]
 func (us *UserService) Me(w http.ResponseWriter, r *http.Request) {
-	user, err := us.GetUserFromContext(r.Context())
-	if err != nil || user == nil {
+	userID, err := GetUserFromContext(r.Context())
+	if err != nil || userID == -1 {
+		log.Printf("Error getting user from context in Me: %v", err)
+		WriteError(w, 500, err.Error())
+		return
+	}
+
+	user, err := us.DB.GetUserByID(userID)
+	if err != nil {
 		log.Printf("Error getting user from context in Me: %v", err)
 		WriteError(w, 500, err.Error())
 		return
@@ -241,8 +231,15 @@ func (us *UserService) Me(w http.ResponseWriter, r *http.Request) {
 }
 
 func (us *UserService) UpdateMe(w http.ResponseWriter, r *http.Request) {
-	user, err := us.GetUserFromContext(r.Context())
-	if err != nil || user == nil {
+	userID, err := GetUserFromContext(r.Context())
+	if err != nil || userID == -1 {
+		log.Printf("Error getting user from context in Me: %v", err)
+		WriteError(w, 500, err.Error())
+		return
+	}
+
+	user, err := us.DB.GetUserByID(userID)
+	if err != nil {
 		log.Printf("Error getting user from context in Me: %v", err)
 		WriteError(w, 500, err.Error())
 		return

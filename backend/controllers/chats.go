@@ -10,19 +10,18 @@ import (
 )
 
 type ChatService struct {
-	DB          *models.ChatGorm
-	UserService *UserService
+	DB *models.ChatGorm
 }
 
 func (cs *ChatService) NewChat(w http.ResponseWriter, r *http.Request) {
-	user, err := cs.UserService.GetUserFromContext(r.Context())
+	userID, err := GetUserFromContext(r.Context())
 	if err != nil {
 		log.Printf("Error getting user in NewChat: %v", err)
 		WriteError(w, 500, err.Error())
 		return
 	}
 
-	chat, err := cs.DB.CreateChat(user.ID, "Temp title")
+	chat, err := cs.DB.CreateChat(uint(userID), "Temp title")
 	if err != nil {
 		log.Printf("Error creating new chat in NewChat: %v", err)
 		WriteError(w, 500, err.Error())
@@ -38,14 +37,14 @@ func (cs *ChatService) NewChat(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cs *ChatService) GetUsersChats(w http.ResponseWriter, r *http.Request) {
-	user, err := cs.UserService.GetUserFromContext(r.Context())
+	userID, err := GetUserFromContext(r.Context())
 	if err != nil {
 		log.Printf("Error getting user in NewChat: %v", err)
 		WriteError(w, 500, err.Error())
 		return
 	}
 
-	chats, err := cs.DB.GetUserChats(user.ID)
+	chats, err := cs.DB.GetUserChats(uint(userID))
 	if err != nil {
 		log.Printf("Error updating user data in GetUsersChats: %v", err)
 		WriteError(w, 500, err.Error())

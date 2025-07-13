@@ -7,8 +7,7 @@ import (
 )
 
 type DrugService struct {
-	DB          *models.DrugGorm
-	UserService *UserService
+	DB *models.DrugGorm
 }
 
 // @Summary Get all drugs
@@ -20,13 +19,13 @@ type DrugService struct {
 // @Success 200 {array} models.Drug
 // @Router /auth/drugs [get]
 func (ds *DrugService) Drugs(w http.ResponseWriter, r *http.Request) {
-	user, err := ds.UserService.GetUserFromContext(r.Context())
+	userID, err := GetUserFromContext(r.Context())
 	if err != nil {
 		log.Printf("Error fetching user: %v", err)
 		WriteError(w, 500, "database error")
 		return
 	}
-	drugs, err := ds.DB.GetDrugsByUserId(user.ID)
+	drugs, err := ds.DB.GetDrugsByUserId(uint(userID))
 	if err != nil {
 		log.Printf("Error fetching drugs: %v", err)
 		WriteError(w, 500, "database error")
@@ -51,7 +50,7 @@ func (ds *DrugService) AddDrug(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := ds.UserService.GetUserFromContext(r.Context())
+	userID, err := GetUserFromContext(r.Context())
 	if err != nil {
 		log.Printf("Error fetching user: %v", err)
 		WriteError(w, 500, "database error")
@@ -67,7 +66,7 @@ func (ds *DrugService) AddDrug(w http.ResponseWriter, r *http.Request) {
 	// 	UserId:      user.ID,
 	// }
 
-	drug.UserId = user.ID
+	drug.UserId = uint(userID)
 
 	_, err = ds.DB.CreateDrug(drug)
 	if err != nil {

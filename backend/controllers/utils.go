@@ -1,9 +1,13 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -111,4 +115,19 @@ func ExtractTokenFromHeader(r *http.Request) (string, error) {
 	}
 
 	return parts[1], nil
+}
+
+func GetUserFromContext(ctx context.Context) (int, error) {
+	claims, ok := ctx.Value("user").(*Claims)
+	if !ok || claims == nil {
+		return 0, errors.New("no user in context")
+	}
+
+	id, err := strconv.Atoi(claims.UserID)
+	if err != nil {
+		log.Printf("Error parsing user ID from context: %v", err)
+		return 0, err
+	}
+
+	return id, nil
 }
