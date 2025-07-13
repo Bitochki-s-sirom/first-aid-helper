@@ -35,6 +35,7 @@ func NewDBService(ApiKey, dsn string) (*DBService, error) {
 		MedCardDB: models.NewMedCardGorm(db),
 		ChatDB:    models.NewChatGorm(db),
 		MessageDB: models.NewMessageGorm(db),
+		DocsDB:    models.NewDocumentGorm(db),
 		ApiKey:    ApiKey,
 	}, nil
 }
