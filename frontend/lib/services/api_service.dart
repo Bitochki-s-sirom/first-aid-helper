@@ -231,7 +231,7 @@ class ApiService {
           line.trim() == 'data: completed') {
         return '[DONE]';
       }
-      return line.substring(6).trim(); // Removes 'data: '
+      return line.substring(6); // Removes 'data: '
     });
 
     yield* stream;
