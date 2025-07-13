@@ -1,10 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../colors/colors.dart';
 import '../services/api_service.dart';
 import '../services/local_storage.dart';
 
 class ChatMessage {
-  final String text;
+  String text;
   final bool isUser;
 
   ChatMessage({required this.text, required this.isUser});
@@ -51,10 +53,17 @@ class ChatHelperPage extends StatefulWidget {
 
 class _ChatHelperPageState extends State<ChatHelperPage> {
   final TextEditingController _messageController = TextEditingController();
+  StreamSubscription<String>? _aiResponseSubscription;
   List<ChatSession> _chats = [];
   int? _selectedChatId;
   bool _isLoading = false;
   String? _token;
+
+  @override
+  void dispose() {
+    _aiResponseSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -161,32 +170,82 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
     await _saveChatsToLocal();
 
     try {
-      final aiReply = await ApiService.sendAiMessage(
+      // Create an empty AI message
+      final aiMessage = ChatMessage(text: '', isUser: false);
+      setState(() {
+        _currentChat!.messages.add(aiMessage);
+      });
+
+      // Start listening to the stream
+      _aiResponseSubscription = ApiService.sendAiMessageStream(
         token: _token!,
         chatId: _currentChat!.id,
         message: text,
-      );
-      setState(() {
-        _currentChat!.messages.add(ChatMessage(text: aiReply, isUser: false));
-        _isLoading = false;
-      });
+      ).listen((chunk) {
+        if (chunk == '[DONE]') {
+          setState(() => _isLoading = false);
+          _saveChatsToLocal();
 
-      if (_currentChat!.messages.where((m) => m.isUser).length == 1) {
-        final newTitle =
-            text.length > 20 ? text.substring(0, 20) + '...' : text;
+          // Update chat title if first message
+          if (_currentChat!.messages.where((m) => m.isUser).length == 1) {
+            final newTitle =
+                text.length > 20 ? '${text.substring(0, 20)}...' : text;
+            setState(() => _currentChat!.title = newTitle);
+          }
+        } else {
+          setState(() => aiMessage.text += chunk);
+        }
+      }, onError: (e) {
         setState(() {
-          _currentChat!.title = newTitle;
+          _isLoading = false;
+          aiMessage.text = 'Error: $e';
         });
-      }
-
-      await _saveChatsToLocal();
+      });
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка общения с ИИ: $e')),
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
+  // Future<void> _sendMessage() async {
+  //   final text = _messageController.text.trim();
+  //   if (text.isEmpty || _currentChat == null || _token == null) return;
+
+  //   setState(() {
+  //     _currentChat!.messages.add(ChatMessage(text: text, isUser: true));
+  //     _isLoading = true;
+  //     _messageController.clear();
+  //   });
+  //   await _saveChatsToLocal();
+
+  //   try {
+  //     final aiReply = await ApiService.sendAiMessage(
+  //       token: _token!,
+  //       chatId: _currentChat!.id,
+  //       message: text,
+  //     );
+  //     setState(() {
+  //       _currentChat!.messages.add(ChatMessage(text: aiReply, isUser: false));
+  //       _isLoading = false;
+  //     });
+
+  //     if (_currentChat!.messages.where((m) => m.isUser).length == 1) {
+  //       final newTitle =
+  //           text.length > 20 ? text.substring(0, 20) + '...' : text;
+  //       setState(() {
+  //         _currentChat!.title = newTitle;
+  //       });
+  //     }
+
+  //     await _saveChatsToLocal();
+  //   } catch (e) {
+  //     setState(() => _isLoading = false);
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text('Ошибка общения с ИИ: $e')),
+  //     );
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {

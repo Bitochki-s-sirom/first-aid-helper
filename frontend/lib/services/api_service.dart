@@ -200,4 +200,40 @@ class ApiService {
       throw Exception('Failed to send message: ${response.statusCode}');
     }
   }
+
+  static Stream<String> sendAiMessageStream({
+    required String token,
+    required int chatId,
+    required String message,
+  }) async* {
+    final url = Uri.parse('$_baseUrl/auth/send_message');
+    final request = http.Request('POST', url)
+      ..headers['Authorization'] = 'Bearer $token'
+      ..headers['Content-Type'] = 'application/json'
+      ..headers['Accept'] = 'text/event-stream'
+      ..body = jsonEncode({'text': message, 'chat_id': chatId});
+
+    final client = http.Client();
+    final response = await client.send(request);
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to send message: ${response.statusCode}');
+    }
+
+    final stream = response.stream
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .where((line) =>
+            line.startsWith('data: ') || line.startsWith('event: done'))
+        .map((line) {
+      if (line.startsWith('event: done') ||
+          line.trim() == 'data: [DONE]' ||
+          line.trim() == 'data: completed') {
+        return '[DONE]';
+      }
+      return line.substring(6).trim(); // Removes 'data: '
+    });
+
+    yield* stream;
+  }
 }

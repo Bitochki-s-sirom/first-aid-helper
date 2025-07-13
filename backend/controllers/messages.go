@@ -107,12 +107,12 @@ func (ms *MessageService) NewMessage(w http.ResponseWriter, r *http.Request) {
 		aiResponse += part.Text
 
 		// Write partial text as an SSE data event to client
-		fmt.Fprintf(w, "data: %s\n\n", part.Text)
+		fmt.Fprintf(w, "data: %s\n\n", strings.ReplaceAll(part.Text, "\n", "\\n"))
 		flusher.Flush() // Flush response to client immediately
 	}
 
 	// Send a custom SSE event to indicate streaming is complete
-	fmt.Fprintf(w, "event: done\ndata: [stream closed]\n\n")
+	fmt.Fprintf(w, "event: done\ndata: completed\n\n")
 	flusher.Flush()
 
 	// Save the complete AI-generated response in the database (role 1 = AI)
