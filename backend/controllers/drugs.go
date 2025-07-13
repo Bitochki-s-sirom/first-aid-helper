@@ -113,7 +113,6 @@ func (ds *DrugService) AddDrug(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param input body DrugCreationRequest true "login body"
 // @Success 200 {object} APIResponse
 // @Router /auth/drugs/remove/{id} [post]
 func (ds *DrugService) RemoveDrug(w http.ResponseWriter, r *http.Request) {

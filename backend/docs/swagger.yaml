@@ -192,6 +192,22 @@ paths:
       summary: Get messages from a chat
       tags:
       - chats
+  /auth/document/remove/{id}:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove one document by id
+      tags:
+      - documents
   /auth/documents:
     get:
       consumes:
@@ -284,13 +300,6 @@ paths:
     post:
       consumes:
       - application/json
-      parameters:
-      - description: login body
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/controllers.DrugCreationRequest'
       produces:
       - application/json
       responses:
