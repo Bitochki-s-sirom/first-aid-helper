@@ -8,8 +8,8 @@ import (
 
 // Document represents a medical document record belonging to a user.
 type Document struct {
-	ID       uint      `gorm:"primaryKey" json:"-"`                 // Unique document ID (hidden from JSON)
-	UserID   uint      `json:"-"`                                   // ID of the user the document belongs to (hidden from JSON)
+	ID       uint      `gorm:"primaryKey" json:"id"`                // Unique document ID (hidden from JSON)
+	UserID   uint      `json:"user_id"`                             // ID of the user the document belongs to (hidden from JSON)
 	Name     string    `json:"name"`                                // Name/title of the document
 	Type     string    `json:"type"`                                // Type/category of document (e.g. prescription, report)
 	Date     time.Time `json:"date" example:"2025-07-12T23:45:00Z"` // Date the document was created or issued
