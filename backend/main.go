@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -72,6 +73,14 @@ func main() {
 	}
 	log.Println("Database automigration completed successfully")
 
+	corsMiddleware := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"}, // Allow all origins
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
+		Debug:            true, // Enable for troubleshooting
+	})
+
 	// Set up router
 	router := mux.NewRouter()
 
@@ -82,10 +91,11 @@ func main() {
 	handlers.AddRoutes(router, dbService)
 	log.Println("Routes configured successfully")
 
+	handler := corsMiddleware.Handler(router)
 	// Configure and start server
 	srv := &http.Server{
 		Addr:    ":8080",
-		Handler: router,
+		Handler: handler,
 	}
 
 	log.Println("Starting server on :8080")

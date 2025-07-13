@@ -14,6 +14,7 @@ type DBService struct {
 	DrugDB    *models.DrugGorm
 	MedCardDB *models.MedicalCardGorm
 	ChatDB    *models.ChatGorm
+	MessageDB *models.MessageGorm
 }
 
 func NewDBService(db *gorm.DB) *DBService {
@@ -23,6 +24,7 @@ func NewDBService(db *gorm.DB) *DBService {
 		DrugDB:    models.NewDrugGorm(db),
 		MedCardDB: models.NewMedCardGorm(db),
 		ChatDB:    models.NewChatGorm(db),
+		MessageDB: models.NewMessageGorm(db),
 	}
 }
 
