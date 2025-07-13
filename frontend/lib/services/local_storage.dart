@@ -13,6 +13,7 @@ class LocalStorage {
   static const String _baseUrl = 'http://localhost:8080';
   static const String _medsKey = 'medications';
   static const String _chatsKey = 'chats';
+  static const String _docsKey = 'documents';
 
   static Future<void> saveAuthData(
       String token, Map<String, dynamic> info) async {
@@ -146,6 +147,21 @@ class LocalStorage {
     final chatsString = prefs.getString(_chatsKey);
     if (chatsString != null) {
       final List<dynamic> jsonList = jsonDecode(chatsString);
+      return jsonList.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  static Future<void> saveDocuments(List<Map<String, dynamic>> docs) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_docsKey, jsonEncode(docs));
+  }
+
+  static Future<List<Map<String, dynamic>>> getDocuments() async {
+    final prefs = await SharedPreferences.getInstance();
+    final docsString = prefs.getString(_docsKey);
+    if (docsString != null) {
+      final List<dynamic> jsonList = jsonDecode(docsString);
       return jsonList.cast<Map<String, dynamic>>();
     }
     return [];

@@ -129,7 +129,6 @@ class ApiService {
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-
       if (data is Map && data.containsKey('data')) {
         if (data['data'] == null) {
           return [];
@@ -139,7 +138,6 @@ class ApiService {
         }
         throw Exception('Ожидался массив чатов в поле data');
       }
-      print('Ответ сервера (getChats): $data');
       throw Exception('Ожидался объект с полем data');
     } else {
       throw Exception('Failed to get chats: ${response.statusCode}');
@@ -169,35 +167,93 @@ class ApiService {
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-
+      if (data is Map && data.containsKey('data') && data['data'] is List) {
+        return List<Map<String, dynamic>>.from(data['data']);
+      }
       if (data is List) {
         return data.cast<Map<String, dynamic>>();
       }
-      print('Ответ сервера (getChatMessages): $data');
-      throw Exception('Ожидался массив сообщений в корне ответа');
+      throw Exception('Ожидался объект с полем data (массив сообщений)');
     } else {
       throw Exception('Failed to get chat messages: ${response.statusCode}');
     }
   }
 
-  static Future<String> sendAiMessage({
+  static Stream<String> sendAiMessageStream({
     required String token,
     required int chatId,
     required String message,
-  }) async {
+  }) async* {
+    final url = Uri.parse('$_baseUrl/auth/send_message');
+    final request = http.Request('POST', url)
+      ..headers['Authorization'] = 'Bearer $token'
+      ..headers['Content-Type'] = 'application/json'
+      ..headers['Accept'] = 'text/event-stream'
+      ..body = jsonEncode({'text': message, 'chat_id': chatId});
+
+    final client = http.Client();
+    final response = await client.send(request);
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to send message: ${response.statusCode}');
+    }
+
+    final stream = response.stream
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .where((line) =>
+            line.startsWith('data: ') || line.startsWith('event: done'))
+        .map((line) {
+      if (line.startsWith('event: done') ||
+          line.trim() == 'data: [DONE]' ||
+          line.trim() == 'data: completed') {
+        return '[DONE]';
+      }
+      return line.substring(6).trim();
+    });
+
+    yield* stream;
+  }
+
+  static Future<List<Map<String, dynamic>>> getDocuments(
+      {required String token}) async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/auth/documents'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data is List) {
+        return data.cast<Map<String, dynamic>>();
+      }
+      throw Exception('Ожидался массив документов');
+    } else {
+      throw Exception('Failed to get documents: ${response.statusCode}');
+    }
+  }
+
+  static Future<bool> addDocument(
+      {required String token, required Map<String, dynamic> document}) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/auth/send_message'),
+      Uri.parse('$_baseUrl/auth/documents/add'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({'text': message, 'chat_id': chatId}),
+      body: jsonEncode(document),
     );
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['data'] as String;
-    } else {
-      throw Exception('Failed to send message: ${response.statusCode}');
-    }
+    return response.statusCode == 200;
+  }
+
+  static Future<bool> removeDocument(
+      {required String token, required int id}) async {
+    // Предполагается, что удаление реализовано как /auth/documents/remove/{id}
+    final response = await http.post(
+      Uri.parse('$_baseUrl/auth/documents/remove/$id'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+    return response.statusCode == 200;
   }
 }

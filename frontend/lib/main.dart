@@ -160,7 +160,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   final List<Widget> pages = const [
     ProfilePage(),
-    MedicalRecordsPage(),
+    DocumentsPage(),
     ChatHelperPage(),
     MedicationsRunoutPage(),
   ];

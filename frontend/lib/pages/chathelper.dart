@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import '../colors/colors.dart';
 import '../services/api_service.dart';
 import '../services/local_storage.dart';
 
 class ChatMessage {
-  final String text;
+  String text;
   final bool isUser;
 
   ChatMessage({required this.text, required this.isUser});
@@ -51,10 +53,19 @@ class ChatHelperPage extends StatefulWidget {
 
 class _ChatHelperPageState extends State<ChatHelperPage> {
   final TextEditingController _messageController = TextEditingController();
+  StreamSubscription<String>? _aiResponseSubscription;
   List<ChatSession> _chats = [];
   int? _selectedChatId;
   bool _isLoading = false;
   String? _token;
+  int? _lastAnimatedAiMsgChatId;
+  int? _lastAnimatedAiMsgIndex;
+
+  @override
+  void dispose() {
+    _aiResponseSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -67,7 +78,6 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
     if (authData == null) return;
     _token = authData['token'];
 
-    // Сначала пробуем загрузить из локального хранилища
     final localChats = await LocalStorage.getChats();
     if (localChats.isNotEmpty) {
       _chats = localChats.map((json) => ChatSession.fromJson(json)).toList();
@@ -76,22 +86,23 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
       });
     }
 
-    // Затем обновляем с бэка
     try {
       final chats = await ApiService.getChats(token: _token!);
+      final Map<int, String> localTitles = {
+        for (final c in _chats) c.id: c.title,
+      };
       _chats = [];
       for (final chat in chats) {
         final id =
             chat['id'] is int ? chat['id'] : int.parse(chat['id'].toString());
-        final title = chat['title'] ?? 'Без названия';
+        final title = localTitles[id] ?? chat['title'] ?? 'Без названия';
         final messages = await _loadMessages(id);
         _chats.add(ChatSession(id: id, title: title, messages: messages));
       }
 
-      // Если чатов нет, создаем первый чат
       if (_chats.isEmpty) {
         await _addNewChat();
-        return; // _addNewChat сам обновит состояние
+        return;
       }
 
       setState(() {
@@ -117,7 +128,7 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
       return msgs
           .map((m) => ChatMessage(
                 text: m['text'] ?? '',
-                isUser: m['sender'] == 1,
+                isUser: m['sender'] == 0 || m['sender'].toString() == '0',
               ))
           .toList();
     } catch (_) {
@@ -161,29 +172,47 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
     await _saveChatsToLocal();
 
     try {
-      final aiReply = await ApiService.sendAiMessage(
+      final aiMessage = ChatMessage(text: '', isUser: false);
+      setState(() {
+        _currentChat!.messages.add(aiMessage);
+        _lastAnimatedAiMsgChatId = _currentChat!.id;
+        _lastAnimatedAiMsgIndex = _currentChat!.messages.length - 1;
+      });
+
+      _aiResponseSubscription = ApiService.sendAiMessageStream(
         token: _token!,
         chatId: _currentChat!.id,
         message: text,
-      );
-      setState(() {
-        _currentChat!.messages.add(ChatMessage(text: aiReply, isUser: false));
-        _isLoading = false;
-      });
-
-      if (_currentChat!.messages.where((m) => m.isUser).length == 1) {
-        final newTitle =
-            text.length > 20 ? text.substring(0, 20) + '...' : text;
+      ).listen((chunk) async {
+        if (chunk == '[DONE]') {
+          setState(() => _isLoading = false);
+          if (_currentChat!.messages.where((m) => m.isUser).length == 1) {
+            final newTitle =
+                text.length > 20 ? '${text.substring(0, 20)}...' : text;
+            final chatIndex =
+                _chats.indexWhere((c) => c.id == _currentChat!.id);
+            if (chatIndex != -1) {
+              setState(() {
+                _chats[chatIndex].title = newTitle;
+              });
+              await _saveChatsToLocal();
+            }
+          } else {
+            await _saveChatsToLocal();
+          }
+        } else {
+          setState(() => aiMessage.text += chunk);
+        }
+      }, onError: (e) {
         setState(() {
-          _currentChat!.title = newTitle;
+          _isLoading = false;
+          aiMessage.text = 'Error: $e';
         });
-      }
-
-      await _saveChatsToLocal();
+      });
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка общения с ИИ: $e')),
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
@@ -246,10 +275,14 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
                         ? kSidebarColor
                         : kDarkSidebarIconColor,
                     child: ListView.builder(
+                      key: ValueKey(chat.id),
                       padding: const EdgeInsets.all(16),
                       itemCount: chat.messages.length,
                       itemBuilder: (context, index) {
                         final msg = chat.messages[index];
+                        final bool shouldAnimate = !msg.isUser &&
+                            chat.id == _lastAnimatedAiMsgChatId &&
+                            index == _lastAnimatedAiMsgIndex;
                         return Align(
                           alignment: msg.isUser
                               ? Alignment.centerRight
@@ -258,31 +291,10 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
                             constraints: BoxConstraints(
                               maxWidth: MediaQuery.of(context).size.width * 0.6,
                             ),
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 4),
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 10, horizontal: 14),
-                              decoration: BoxDecoration(
-                                color: msg.isUser
-                                    ? kSidebarActiveColor.withOpacity(0.8)
-                                    : Theme.of(context).brightness ==
-                                            Brightness.light
-                                        ? const Color.fromARGB(
-                                                255, 136, 155, 143)
-                                            .withOpacity(0.3)
-                                        : kSidebarIconColor.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Text(
-                                msg.text,
-                                style: TextStyle(
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.light
-                                      ? kSidebarIconColor
-                                      : kDarkSidebarIconColor,
-                                  fontSize: 16,
-                                ),
-                              ),
+                            child: ChatMessageWidget(
+                              text: msg.text,
+                              isUser: msg.isUser,
+                              animate: shouldAnimate,
                             ),
                           ),
                         );
@@ -337,6 +349,121 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Виджет для плавной анимации и поддержки markdown у сообщений
+class ChatMessageWidget extends StatelessWidget {
+  final String text;
+  final bool isUser;
+  final bool animate;
+
+  const ChatMessageWidget({
+    required this.text,
+    required this.isUser,
+    this.animate = false,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 400),
+      child: Container(
+        key: ValueKey<String>(text),
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+        decoration: BoxDecoration(
+          color: isUser
+              ? kSidebarActiveColor.withOpacity(0.8)
+              : Theme.of(context).brightness == Brightness.light
+                  ? const Color.fromARGB(255, 136, 155, 143).withOpacity(0.3)
+                  : kSidebarIconColor.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: isUser
+            ? Text(
+                text,
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.light
+                      ? kSidebarIconColor
+                      : kDarkSidebarIconColor,
+                  fontSize: 16,
+                ),
+              )
+            : animate
+                ? AnimatedMarkdownText(text: text)
+                : MarkdownBody(
+                    data: text,
+                    styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)),
+                  ),
+      ),
+    );
+  }
+}
+
+/// Виджет для "печати" markdown текста буква за буквой
+class AnimatedMarkdownText extends StatefulWidget {
+  final String text;
+  final Duration duration;
+
+  const AnimatedMarkdownText({
+    Key? key,
+    required this.text,
+    this.duration = const Duration(milliseconds: 25),
+  }) : super(key: key);
+
+  @override
+  State<AnimatedMarkdownText> createState() => _AnimatedMarkdownTextState();
+}
+
+class _AnimatedMarkdownTextState extends State<AnimatedMarkdownText> {
+  String _visibleText = '';
+  int _currentIndex = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startAnimation();
+  }
+
+  @override
+  void didUpdateWidget(covariant AnimatedMarkdownText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _currentIndex = 0;
+      _visibleText = '';
+      _timer?.cancel();
+      _startAnimation();
+    }
+  }
+
+  void _startAnimation() {
+    _timer = Timer.periodic(widget.duration, (timer) {
+      if (_currentIndex <= widget.text.length) {
+        setState(() {
+          _visibleText = widget.text.substring(0, _currentIndex);
+          _currentIndex++;
+        });
+      } else {
+        _timer?.cancel();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MarkdownBody(
+      data: _visibleText,
+      styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)),
     );
   }
 }
