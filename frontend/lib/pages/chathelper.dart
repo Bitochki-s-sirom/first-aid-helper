@@ -58,7 +58,6 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
   int? _selectedChatId;
   bool _isLoading = false;
   String? _token;
-  final _listKey = GlobalKey<AnimatedListState>();
 
   @override
   void dispose() {
@@ -77,7 +76,6 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
     if (authData == null) return;
     _token = authData['token'];
 
-    // Сначала пробуем загрузить из локального хранилища
     final localChats = await LocalStorage.getChats();
     if (localChats.isNotEmpty) {
       _chats = localChats.map((json) => ChatSession.fromJson(json)).toList();
@@ -86,7 +84,6 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
       });
     }
 
-    // Затем обновляем с бэка
     try {
       final chats = await ApiService.getChats(token: _token!);
       _chats = [];
@@ -171,13 +168,11 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
     await _saveChatsToLocal();
 
     try {
-      // Create an empty AI message
       final aiMessage = ChatMessage(text: '', isUser: false);
       setState(() {
         _currentChat!.messages.add(aiMessage);
       });
 
-      // Start listening to the stream
       _aiResponseSubscription = ApiService.sendAiMessageStream(
         token: _token!,
         chatId: _currentChat!.id,
@@ -284,6 +279,8 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
                             child: ChatMessageWidget(
                               text: msg.text,
                               isUser: msg.isUser,
+                              animate: !msg.isUser &&
+                                  index == chat.messages.length - 1,
                             ),
                           ),
                         );
@@ -346,9 +343,14 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
 class ChatMessageWidget extends StatelessWidget {
   final String text;
   final bool isUser;
+  final bool animate;
 
-  const ChatMessageWidget({required this.text, required this.isUser, Key? key})
-      : super(key: key);
+  const ChatMessageWidget({
+    required this.text,
+    required this.isUser,
+    this.animate = false,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -376,11 +378,78 @@ class ChatMessageWidget extends StatelessWidget {
                   fontSize: 16,
                 ),
               )
-            : MarkdownBody(
-                data: text,
-                styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)),
-              ),
+            : animate
+                ? AnimatedMarkdownText(text: text)
+                : MarkdownBody(
+                    data: text,
+                    styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)),
+                  ),
       ),
+    );
+  }
+}
+
+/// Виджет для "печати" markdown текста буква за буквой
+class AnimatedMarkdownText extends StatefulWidget {
+  final String text;
+  final Duration duration;
+
+  const AnimatedMarkdownText({
+    Key? key,
+    required this.text,
+    this.duration = const Duration(milliseconds: 25),
+  }) : super(key: key);
+
+  @override
+  State<AnimatedMarkdownText> createState() => _AnimatedMarkdownTextState();
+}
+
+class _AnimatedMarkdownTextState extends State<AnimatedMarkdownText> {
+  String _visibleText = '';
+  int _currentIndex = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startAnimation();
+  }
+
+  @override
+  void didUpdateWidget(covariant AnimatedMarkdownText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _currentIndex = 0;
+      _visibleText = '';
+      _timer?.cancel();
+      _startAnimation();
+    }
+  }
+
+  void _startAnimation() {
+    _timer = Timer.periodic(widget.duration, (timer) {
+      if (_currentIndex <= widget.text.length) {
+        setState(() {
+          _visibleText = widget.text.substring(0, _currentIndex);
+          _currentIndex++;
+        });
+      } else {
+        _timer?.cancel();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MarkdownBody(
+      data: _visibleText,
+      styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)),
     );
   }
 }
