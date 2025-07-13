@@ -139,7 +139,6 @@ class ApiService {
         }
         throw Exception('Ожидался массив чатов в поле data');
       }
-      print('Ответ сервера (getChats): $data');
       throw Exception('Ожидался объект с полем data');
     } else {
       throw Exception('Failed to get chats: ${response.statusCode}');
@@ -170,34 +169,12 @@ class ApiService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
-      if (data is List) {
-        return data.cast<Map<String, dynamic>>();
+      if (data is Map && data.containsKey('data') && data['data'] is List) {
+        return List<Map<String, dynamic>>.from(data['data']);
       }
-      print('Ответ сервера (getChatMessages): $data');
-      throw Exception('Ожидался массив сообщений в корне ответа');
+      throw Exception('Ожидался объект с полем data (массив сообщений)');
     } else {
       throw Exception('Failed to get chat messages: ${response.statusCode}');
-    }
-  }
-
-  static Future<String> sendAiMessage({
-    required String token,
-    required int chatId,
-    required String message,
-  }) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/auth/send_message'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({'text': message, 'chat_id': chatId}),
-    );
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['data'] as String;
-    } else {
-      throw Exception('Failed to send message: ${response.statusCode}');
     }
   }
 
@@ -231,7 +208,7 @@ class ApiService {
           line.trim() == 'data: completed') {
         return '[DONE]';
       }
-      return line.substring(6).trim(); // Removes 'data: '
+      return line.substring(6).trim();
     });
 
     yield* stream;

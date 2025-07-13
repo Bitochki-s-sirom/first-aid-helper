@@ -58,6 +58,8 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
   int? _selectedChatId;
   bool _isLoading = false;
   String? _token;
+  int? _lastAnimatedAiMsgChatId;
+  int? _lastAnimatedAiMsgIndex;
 
   @override
   void dispose() {
@@ -171,6 +173,9 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
       final aiMessage = ChatMessage(text: '', isUser: false);
       setState(() {
         _currentChat!.messages.add(aiMessage);
+        // Запоминаем, что это новое сообщение ИИ для анимации
+        _lastAnimatedAiMsgChatId = _currentChat!.id;
+        _lastAnimatedAiMsgIndex = _currentChat!.messages.length - 1;
       });
 
       _aiResponseSubscription = ApiService.sendAiMessageStream(
@@ -268,6 +273,9 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
                       itemCount: chat.messages.length,
                       itemBuilder: (context, index) {
                         final msg = chat.messages[index];
+                        final bool shouldAnimate = !msg.isUser &&
+                            chat.id == _lastAnimatedAiMsgChatId &&
+                            index == _lastAnimatedAiMsgIndex;
                         return Align(
                           alignment: msg.isUser
                               ? Alignment.centerRight
@@ -279,8 +287,7 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
                             child: ChatMessageWidget(
                               text: msg.text,
                               isUser: msg.isUser,
-                              animate: !msg.isUser &&
-                                  index == chat.messages.length - 1,
+                              animate: shouldAnimate,
                             ),
                           ),
                         );
