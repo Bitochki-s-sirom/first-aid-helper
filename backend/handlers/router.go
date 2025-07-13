@@ -36,7 +36,12 @@ func AddRoutes(r *mux.Router, service *services.DBService) {
 
 	authRoute.HandleFunc("/drugs", drugsService.Drugs).Methods("GET")
 	authRoute.HandleFunc("/drugs/add", drugsService.AddDrug).Methods("POST")
+
 	authRoute.HandleFunc("/me", userService.UpdateMe).Methods("POST")
+
+	authRoute.HandleFunc("/documents", documentsService.Documents).Methods("GET")
+	authRoute.HandleFunc("/documents/add", documentsService.AddDocument).Methods("POST")
+
 	authRoute.HandleFunc("/chats", chatService.GetUsersChats).Methods("GET")
 	authRoute.HandleFunc("/new_chat", chatService.NewChat).Methods("POST")
 	authRoute.HandleFunc("/chats/{id:[0-9]+}", chatService.GetChat).Methods("GET")
