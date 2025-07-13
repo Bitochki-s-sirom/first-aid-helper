@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
 import '../utils/validators.dart';
 import '../colors/colors.dart';
-import '../widgets/squareavatar.dart';
 
 class LoginPage extends StatefulWidget {
   final Function(String, String) onLogin;

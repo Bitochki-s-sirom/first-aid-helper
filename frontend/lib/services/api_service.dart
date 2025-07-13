@@ -120,4 +120,84 @@ class ApiService {
     );
     return response.statusCode == 200;
   }
+
+  static Future<List<Map<String, dynamic>>> getChats(
+      {required String token}) async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/auth/chats'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      if (data is Map && data.containsKey('data')) {
+        if (data['data'] == null) {
+          return [];
+        }
+        if (data['data'] is List) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+        throw Exception('Ожидался массив чатов в поле data');
+      }
+      print('Ответ сервера (getChats): $data');
+      throw Exception('Ожидался объект с полем data');
+    } else {
+      throw Exception('Failed to get chats: ${response.statusCode}');
+    }
+  }
+
+  static Future<int> createChat({required String token}) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/auth/new_chat'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['data'] as int;
+    } else {
+      throw Exception('Failed to create chat: ${response.statusCode}');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getChatMessages({
+    required String token,
+    required int chatId,
+  }) async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/auth/chats/$chatId'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      if (data is List) {
+        return data.cast<Map<String, dynamic>>();
+      }
+      print('Ответ сервера (getChatMessages): $data');
+      throw Exception('Ожидался массив сообщений в корне ответа');
+    } else {
+      throw Exception('Failed to get chat messages: ${response.statusCode}');
+    }
+  }
+
+  static Future<String> sendAiMessage({
+    required String token,
+    required int chatId,
+    required String message,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/auth/send_message'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'text': message, 'chat_id': chatId}),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['data'] as String;
+    } else {
+      throw Exception('Failed to send message: ${response.statusCode}');
+    }
+  }
 }

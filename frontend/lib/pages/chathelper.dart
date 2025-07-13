@@ -1,21 +1,45 @@
 import 'package:flutter/material.dart';
 import '../colors/colors.dart';
+import '../services/api_service.dart';
+import '../services/local_storage.dart';
 
-// Модель одного сообщения
 class ChatMessage {
   final String text;
   final bool isUser;
 
   ChatMessage({required this.text, required this.isUser});
+
+  Map<String, dynamic> toJson() => {
+        'text': text,
+        'isUser': isUser,
+      };
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
+        text: json['text'] ?? '',
+        isUser: json['isUser'] ?? false,
+      );
 }
 
-// Модель чата
 class ChatSession {
-  final String id;
-  final String title;
+  final int id;
+  String title;
   final List<ChatMessage> messages;
 
   ChatSession({required this.id, required this.title, required this.messages});
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'messages': messages.map((m) => m.toJson()).toList(),
+      };
+
+  factory ChatSession.fromJson(Map<String, dynamic> json) => ChatSession(
+        id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
+        title: json['title'] ?? '',
+        messages: (json['messages'] as List<dynamic>? ?? [])
+            .map((m) => ChatMessage.fromJson(m as Map<String, dynamic>))
+            .toList(),
+      );
 }
 
 class ChatHelperPage extends StatefulWidget {
@@ -27,62 +51,135 @@ class ChatHelperPage extends StatefulWidget {
 
 class _ChatHelperPageState extends State<ChatHelperPage> {
   final TextEditingController _messageController = TextEditingController();
-
-  // Список всех чатов
   List<ChatSession> _chats = [];
-  String? _selectedChatId;
-
+  int? _selectedChatId;
   bool _isLoading = false;
+  String? _token;
 
   @override
   void initState() {
     super.initState();
-    // Можно загрузить чаты из локального хранилища или с бэка
-    _chats = [
-      ChatSession(id: 'chat1', title: 'Мой первый чат', messages: []),
-    ];
-    _selectedChatId = _chats.first.id;
+    _loadChats();
   }
 
-  ChatSession get _currentChat =>
-      _chats.firstWhere((c) => c.id == _selectedChatId);
+  Future<void> _loadChats() async {
+    final authData = await LocalStorage.getAuthData();
+    if (authData == null) return;
+    _token = authData['token'];
 
-  void _addNewChat() {
-    final newId = DateTime.now().millisecondsSinceEpoch.toString();
-    setState(() {
-      _chats.add(ChatSession(
-        id: newId,
-        title: 'Чат ${_chats.length + 1}',
-        messages: [],
-      ));
-      _selectedChatId = newId;
-    });
+    // Сначала пробуем загрузить из локального хранилища
+    final localChats = await LocalStorage.getChats();
+    if (localChats.isNotEmpty) {
+      _chats = localChats.map((json) => ChatSession.fromJson(json)).toList();
+      setState(() {
+        _selectedChatId = _chats.isNotEmpty ? _chats.first.id : null;
+      });
+    }
+
+    // Затем обновляем с бэка
+    try {
+      final chats = await ApiService.getChats(token: _token!);
+      _chats = [];
+      for (final chat in chats) {
+        final id =
+            chat['id'] is int ? chat['id'] : int.parse(chat['id'].toString());
+        final title = chat['title'] ?? 'Без названия';
+        final messages = await _loadMessages(id);
+        _chats.add(ChatSession(id: id, title: title, messages: messages));
+      }
+
+      // Если чатов нет, создаем первый чат
+      if (_chats.isEmpty) {
+        await _addNewChat();
+        return; // _addNewChat сам обновит состояние
+      }
+
+      setState(() {
+        _selectedChatId = _chats.isNotEmpty ? _chats.first.id : null;
+      });
+      await _saveChatsToLocal();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка загрузки чатов: $e')),
+      );
+    }
+  }
+
+  Future<void> _saveChatsToLocal() async {
+    await LocalStorage.saveChats(_chats.map((c) => c.toJson()).toList());
+  }
+
+  Future<List<ChatMessage>> _loadMessages(int chatId) async {
+    if (_token == null) return [];
+    try {
+      final msgs =
+          await ApiService.getChatMessages(token: _token!, chatId: chatId);
+      return msgs
+          .map((m) => ChatMessage(
+                text: m['text'] ?? '',
+                isUser: m['sender'] == 1,
+              ))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  ChatSession? get _currentChat =>
+      _chats.firstWhereOrNull((c) => c.id == _selectedChatId);
+
+  Future<void> _addNewChat() async {
+    if (_token == null) return;
+    setState(() => _isLoading = true);
+    try {
+      final newId = await ApiService.createChat(token: _token!);
+      final messages = await _loadMessages(newId);
+      setState(() {
+        _chats.add(ChatSession(
+            id: newId, title: 'Чат ${_chats.length + 1}', messages: messages));
+        _selectedChatId = newId;
+        _isLoading = false;
+      });
+      await _saveChatsToLocal();
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка создания чата: $e')),
+      );
+    }
   }
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _currentChat == null || _token == null) return;
 
     setState(() {
-      _currentChat.messages.add(ChatMessage(text: text, isUser: true));
+      _currentChat!.messages.add(ChatMessage(text: text, isUser: true));
       _isLoading = true;
       _messageController.clear();
     });
+    await _saveChatsToLocal();
 
-    // Отправка сообщения на бэк (замените на свой API)
     try {
-      // final response = await ApiService.sendAiMessage(
-      //   chatId: _currentChat.id,
-      //   message: text,
-      // );
-      // final aiReply = response['reply'] ?? 'Нет ответа';
-      await Future.delayed(const Duration(seconds: 1)); // имитация задержки
-      final aiReply = 'Ответ ИИ на: "$text"';
-
+      final aiReply = await ApiService.sendAiMessage(
+        token: _token!,
+        chatId: _currentChat!.id,
+        message: text,
+      );
       setState(() {
-        _currentChat.messages.add(ChatMessage(text: aiReply, isUser: false));
+        _currentChat!.messages.add(ChatMessage(text: aiReply, isUser: false));
         _isLoading = false;
       });
+
+      if (_currentChat!.messages.where((m) => m.isUser).length == 1) {
+        final newTitle =
+            text.length > 20 ? text.substring(0, 20) + '...' : text;
+        setState(() {
+          _currentChat!.title = newTitle;
+        });
+      }
+
+      await _saveChatsToLocal();
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -93,6 +190,7 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
 
   @override
   Widget build(BuildContext context) {
+    final chat = _currentChat;
     return Scaffold(
       backgroundColor: Theme.of(context).brightness == Brightness.light
           ? kSidebarColor
@@ -103,7 +201,7 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
           children: [
             Expanded(
               child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
+                child: DropdownButton<int>(
                   value: _selectedChatId,
                   dropdownColor: kSidebarActiveColor,
                   icon: Icon(Icons.arrow_drop_down, color: kSidebarIconColor),
@@ -131,7 +229,7 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
             IconButton(
               tooltip: 'Создать новый чат',
               icon: Icon(Icons.add, color: kSidebarIconColor),
-              onPressed: _addNewChat,
+              onPressed: _isLoading ? null : _addNewChat,
             ),
           ],
         ),
@@ -139,47 +237,58 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
       body: Column(
         children: [
           Expanded(
-            child: Container(
-              color: Theme.of(context).brightness == Brightness.light
-                  ? kSidebarColor
-                  : kDarkSidebarIconColor,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: _currentChat.messages.length,
-                itemBuilder: (context, index) {
-                  final msg = _currentChat.messages[index];
-                  return Align(
-                    alignment: msg.isUser
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 10, horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: msg.isUser
-                            ? kSidebarActiveColor.withOpacity(0.8)
-                            : Theme.of(context).brightness == Brightness.light
-                                ? const Color.fromARGB(255, 136, 155, 143)
-                                    .withOpacity(0.3)
-                                : kSidebarIconColor.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        msg.text,
-                        style: TextStyle(
-                          color:
-                              Theme.of(context).brightness == Brightness.light
-                                  ? kSidebarIconColor
-                                  : kDarkSidebarIconColor,
-                          fontSize: 16,
-                        ),
-                      ),
+            child: chat == null
+                ? Center(
+                    child: Text('Нет чатов',
+                        style: TextStyle(color: kSidebarActiveColor)))
+                : Container(
+                    color: Theme.of(context).brightness == Brightness.light
+                        ? kSidebarColor
+                        : kDarkSidebarIconColor,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: chat.messages.length,
+                      itemBuilder: (context, index) {
+                        final msg = chat.messages[index];
+                        return Align(
+                          alignment: msg.isUser
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.of(context).size.width * 0.6,
+                            ),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 10, horizontal: 14),
+                              decoration: BoxDecoration(
+                                color: msg.isUser
+                                    ? kSidebarActiveColor.withOpacity(0.8)
+                                    : Theme.of(context).brightness ==
+                                            Brightness.light
+                                        ? const Color.fromARGB(
+                                                255, 136, 155, 143)
+                                            .withOpacity(0.3)
+                                        : kSidebarIconColor.withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Text(
+                                msg.text,
+                                style: TextStyle(
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.light
+                                      ? kSidebarIconColor
+                                      : kDarkSidebarIconColor,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
-            ),
+                  ),
           ),
           if (_isLoading)
             Padding(
@@ -229,5 +338,14 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
         ],
       ),
     );
+  }
+}
+
+extension FirstWhereOrNullExtension<E> on List<E> {
+  E? firstWhereOrNull(bool Function(E) test) {
+    for (final element in this) {
+      if (test(element)) return element;
+    }
+    return null;
   }
 }

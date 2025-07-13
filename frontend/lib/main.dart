@@ -8,7 +8,6 @@ import 'pages/records.dart';
 import 'widgets/squareavatar.dart';
 import 'services/api_service.dart';
 import 'services/local_storage.dart';
-import 'utils/validators.dart';
 import 'pages/loginpage.dart';
 import 'pages/signuppage.dart';
 
