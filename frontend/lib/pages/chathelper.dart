@@ -78,25 +78,22 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
     if (authData == null) return;
     _token = authData['token'];
 
+    // 1. Загружаем локальные чаты (для titles)
     final localChats = await LocalStorage.getChats();
-    if (localChats.isNotEmpty) {
-      _chats = localChats.map((json) => ChatSession.fromJson(json)).toList();
-      setState(() {
-        _selectedChatId = _chats.isNotEmpty ? _chats.first.id : null;
-      });
-    }
+    final Map<int, String> localTitles = {
+      for (final c in localChats.map((json) => ChatSession.fromJson(json)))
+        c.id: c.title,
+    };
 
+    // 2. Загружаем чаты с сервера
     try {
       final chats = await ApiService.getChats(token: _token!);
-      final Map<int, String> localTitles = {
-        for (final c in _chats) c.id: c.title,
-      };
       _chats = [];
       for (final chat in chats) {
         final id =
             chat['id'] is int ? chat['id'] : int.parse(chat['id'].toString());
         final title = localTitles[id] ?? chat['title'] ?? 'Без названия';
-        final messages = await _loadMessages(id);
+        final messages = await _loadMessages(id); // <-- всегда берём с сервера!
         _chats.add(ChatSession(id: id, title: title, messages: messages));
       }
 
@@ -108,8 +105,15 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
       setState(() {
         _selectedChatId = _chats.isNotEmpty ? _chats.first.id : null;
       });
-      await _saveChatsToLocal();
+      await _saveChatsToLocal(); // Сохраняем свежие данные
     } catch (e) {
+      // Если сервер не отвечает, fallback на локальные чаты
+      if (localChats.isNotEmpty) {
+        _chats = localChats.map((json) => ChatSession.fromJson(json)).toList();
+        setState(() {
+          _selectedChatId = _chats.isNotEmpty ? _chats.first.id : null;
+        });
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка загрузки чатов: $e')),
       );
