@@ -5,9 +5,19 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 )
+
+// Represents request1's JSON
+type DocumentUploadRequest struct {
+	Name     string    `json:"name"`                                // Name/title of the document
+	Type     string    `json:"type"`                                // Type/category of document (e.g. prescription, report)
+	Date     time.Time `json:"date" example:"2025-07-12T23:45:00Z"` // Date the document was created or issued
+	Doctor   string    `json:"doctor"`                              // Name of the doctor associated with the document
+	FileData []byte    `json:"file_data"`                           // File contents (binary), base64-encoded when serialized to JSON
+}
 
 // DocumentService handles operations related to user's documents, interfacing with the database.
 type DocumentService struct {
@@ -39,7 +49,10 @@ func (ds *DocumentService) Documents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteJSON(w, 200, docs)
+	WriteJSON(w, 200, &APIResponse{
+		Status: 200,
+		Data:   &docs,
+	})
 }
 
 // @Summary Add one document
@@ -51,9 +64,9 @@ func (ds *DocumentService) Documents(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {array} APIResponse
 // @Router /auth/documents/add [post]
 func (ds *DocumentService) AddDocument(w http.ResponseWriter, r *http.Request) {
-	newDoc := &models.Document{}
+	docUploadRequest := &DocumentUploadRequest{}
 	// Get document description from JSON
-	if err := ParseJSON(r, newDoc); err != nil {
+	if err := ParseJSON(r, docUploadRequest); err != nil {
 		log.Printf("Error parsing JSON in AddDocument: %v", err)
 		WriteError(w, 500, err.Error())
 		return
@@ -67,8 +80,15 @@ func (ds *DocumentService) AddDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Cast int to uint
-	newDoc.UserID = uint(userID)
+	// New document record for db
+	newDoc := &models.Document{
+		UserID:   uint(userID),
+		Name:     docUploadRequest.Name,
+		Doctor:   docUploadRequest.Doctor,
+		Type:     docUploadRequest.Type,
+		Date:     docUploadRequest.Date,
+		FileData: docUploadRequest.FileData,
+	}
 
 	// Create a record in DB
 	_, err = ds.DB.CreateDocument(newDoc)
