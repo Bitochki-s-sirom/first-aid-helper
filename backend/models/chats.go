@@ -15,12 +15,12 @@ type Chat struct {
 
 // ChatGorm is a wrapper around GORM's DB object to encapsulate chat-related DB operations.
 type ChatGorm struct {
-	db *gorm.DB
+	DB *gorm.DB
 }
 
 // NewChatGorm initializes a new ChatGorm instance.
 func NewChatGorm(db *gorm.DB) *ChatGorm {
-	return &ChatGorm{db: db}
+	return &ChatGorm{DB: db}
 }
 
 // CreateChat creates a new chat with a given user ID and title.
@@ -30,7 +30,7 @@ func (cg *ChatGorm) CreateChat(userID uint, title string) (*Chat, error) {
 		UserID: userID,
 		Title:  title,
 	}
-	err := cg.db.Create(chat).Error
+	err := cg.DB.Create(chat).Error
 	return chat, err
 }
 
@@ -38,7 +38,7 @@ func (cg *ChatGorm) CreateChat(userID uint, title string) (*Chat, error) {
 // Uses GORM's Preload to load the related Messages slice.
 func (cg *ChatGorm) GetChatByID(chatID uint) (*Chat, error) {
 	var chat Chat
-	err := cg.db.Preload("Messages").First(&chat, chatID).Error
+	err := cg.DB.Preload("Messages").First(&chat, chatID).Error
 	return &chat, err
 }
 
@@ -46,6 +46,6 @@ func (cg *ChatGorm) GetChatByID(chatID uint) (*Chat, error) {
 // Returns a slice of Chat objects or an error.
 func (cg *ChatGorm) GetUserChats(userID uint) ([]Chat, error) {
 	var chats []Chat
-	err := cg.db.Where("user_id = ?", userID).Find(&chats).Error
+	err := cg.DB.Where("user_id = ?", userID).Find(&chats).Error
 	return chats, err
 }
