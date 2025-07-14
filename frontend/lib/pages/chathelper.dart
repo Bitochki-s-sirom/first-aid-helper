@@ -111,8 +111,9 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
           _selectedChatId = _chats.isNotEmpty ? _chats.first.id : null;
         });
       }
+      print('$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка загрузки чатов: $e')),
+        SnackBar(content: Text('Ошибка загрузки чатов')),
       );
     }
   }
@@ -155,8 +156,9 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
       await _saveChatsToLocal();
     } catch (e) {
       setState(() => _isLoading = false);
+      print('$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка создания чата: $e')),
+        SnackBar(content: Text('Ошибка создания чата')),
       );
     }
   }
@@ -205,15 +207,17 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
           setState(() => aiMessage.text += chunk);
         }
       }, onError: (e) {
+        print('$e');
         setState(() {
           _isLoading = false;
-          aiMessage.text = 'Error: $e';
+          aiMessage.text = 'Server error';
         });
       });
     } catch (e) {
       setState(() => _isLoading = false);
+      print('$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('Error sending message')),
       );
     }
   }

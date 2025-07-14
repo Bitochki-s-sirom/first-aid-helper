@@ -101,7 +101,8 @@ class _DocumentsPageState extends State<DocumentsPage> {
         showErrorSnackBar(context, 'Не удалось добавить документ');
       }
     } catch (e) {
-      showErrorSnackBar(context, 'Ошибка при добавлении: $e');
+      print('$e');
+      showErrorSnackBar(context, 'Ошибка при добавлении');
     }
   }
 
@@ -121,7 +122,8 @@ class _DocumentsPageState extends State<DocumentsPage> {
         showErrorSnackBar(context, 'Не удалось удалить документ');
       }
     } catch (e) {
-      showErrorSnackBar(context, 'Ошибка при удалении: $e');
+      print('$e');
+      showErrorSnackBar(context, 'Ошибка при удалении');
     }
   }
 

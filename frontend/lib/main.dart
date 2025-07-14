@@ -42,8 +42,9 @@ class _MyAppState extends State<MyApp> {
 
       setState(() => _isLoggedIn = true);
     } catch (e) {
+      print('$e');
       _scaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(content: Text('Ошибка входа: ${e.toString()}')),
+        SnackBar(content: Text('Ошибка входа')),
       );
     }
   }
@@ -65,8 +66,9 @@ class _MyAppState extends State<MyApp> {
         ),
       );
     } catch (e) {
+      print('$e');
       _scaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(content: Text('Ошибка регистрации: ${e.toString()}')),
+        SnackBar(content: Text('Ошибка регистрации')),
       );
       rethrow;
     }
