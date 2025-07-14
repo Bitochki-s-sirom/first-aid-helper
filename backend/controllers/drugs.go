@@ -39,7 +39,7 @@ type DrugService struct {
 func (ds *DrugService) Drugs(w http.ResponseWriter, r *http.Request) {
 	// Fetch user from request context
 	// User must be present due to AuthMiddleware
-	userID, err := GetUserFromContext(r.Context())
+	userID, _, err := GetUserFromContext(r.Context(), ds.DB.DB)
 	if err != nil {
 		log.Printf("Error fetching user: %v", err)
 		WriteError(w, 500, "database error")
@@ -74,7 +74,7 @@ func (ds *DrugService) AddDrug(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get user id form request context
-	userID, err := GetUserFromContext(r.Context())
+	userID, _, err := GetUserFromContext(r.Context(), ds.DB.DB)
 	if err != nil {
 		log.Printf("Error fetching user: %v", err)
 		WriteError(w, 500, "database error")

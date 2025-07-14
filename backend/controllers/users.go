@@ -218,7 +218,7 @@ func (us *UserService) LogIn(w http.ResponseWriter, r *http.Request) {
 // @Router /me [get]
 func (us *UserService) Me(w http.ResponseWriter, r *http.Request) {
 	// Get user ID from request context (set by authentication middleware)
-	userID, err := GetUserFromContext(r.Context())
+	userID, userEmail, err := GetUserFromContext(r.Context(), us.DB.DB)
 	if err != nil || userID == -1 {
 		log.Printf("Error getting user from context in Me: %v", err)
 		WriteError(w, 500, err.Error())
@@ -226,7 +226,7 @@ func (us *UserService) Me(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch user details by ID
-	user, err := us.DB.GetUserByID(userID)
+	user, err := us.DB.GetUserByEmail(userEmail)
 	if err != nil {
 		log.Printf("Error getting user by ID in Me: %v", err)
 		WriteError(w, 500, err.Error())
@@ -273,7 +273,7 @@ func (us *UserService) Me(w http.ResponseWriter, r *http.Request) {
 // @Router /auth/me [post]
 func (us *UserService) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	// Get user id from request context
-	userID, err := GetUserFromContext(r.Context())
+	userID, userEmail, err := GetUserFromContext(r.Context(), us.DB.DB)
 	if err != nil || userID == -1 {
 		log.Printf("Error getting user from context in Me: %v", err)
 		WriteError(w, 500, err.Error())
@@ -281,7 +281,7 @@ func (us *UserService) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get user by id
-	user, err := us.DB.GetUserByID(userID)
+	user, err := us.DB.GetUserByEmail(userEmail)
 	if err != nil {
 		log.Printf("Error getting user from context in Me: %v", err)
 		WriteError(w, 500, err.Error())
