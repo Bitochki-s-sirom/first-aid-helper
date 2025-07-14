@@ -104,8 +104,8 @@ func GenerateJWT(userID, email string) (string, error) {
 
 // ParseJWT parses and validates a JWT token string, returning the Claims if valid.
 func ParseJWT(tokenStr string) (*Claims, error) {
-	claims := &Claims{}
-	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+	claims := Claims{}
+	token, err := jwt.ParseWithClaims(tokenStr, &claims, func(token *jwt.Token) (interface{}, error) {
 		// Provide the secret key for verification
 		return []byte(jwtKey), nil
 	})
@@ -114,7 +114,7 @@ func ParseJWT(tokenStr string) (*Claims, error) {
 		return nil, fmt.Errorf("invalid token: %v", err)
 	}
 
-	return claims, nil
+	return &claims, nil
 }
 
 // ExtractTokenFromHeader extracts the JWT token string from the Authorization header.
@@ -152,7 +152,7 @@ func GetUserFromContext(ctx context.Context, db *gorm.DB) (int, string, error) {
 		return 0, "", err
 	}
 
-	return id, "", nil
+	return id, claims.Email, nil
 }
 
 // Custom time to suit flutter format
