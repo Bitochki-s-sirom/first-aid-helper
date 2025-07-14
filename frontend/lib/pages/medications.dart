@@ -157,6 +157,14 @@ class _MedicationsRunoutPageState extends State<MedicationsRunoutPage> {
                     _filterMedications(_searchController.text);
                   },
                   activeColor: kSidebarActiveColor,
+                  fillColor: MaterialStateProperty.resolveWith<Color>(
+                    (Set<MaterialState> states) {
+                      if (states.contains(MaterialState.selected)) {
+                        return kSidebarActiveColor;
+                      }
+                      return kSidebarActiveColor;
+                    },
+                  ),
                 ),
               ),
               ListTile(
@@ -176,6 +184,14 @@ class _MedicationsRunoutPageState extends State<MedicationsRunoutPage> {
                     _filterMedications(_searchController.text);
                   },
                   activeColor: kSidebarActiveColor,
+                  fillColor: MaterialStateProperty.resolveWith<Color>(
+                    (Set<MaterialState> states) {
+                      if (states.contains(MaterialState.selected)) {
+                        return kSidebarActiveColor;
+                      }
+                      return kSidebarActiveColor;
+                    },
+                  ),
                 ),
               ),
             ],

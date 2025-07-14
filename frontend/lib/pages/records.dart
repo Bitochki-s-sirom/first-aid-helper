@@ -6,6 +6,7 @@ import '../colors/colors.dart';
 import '../services/local_storage.dart';
 import '../services/api_service.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 class DocumentsPage extends StatefulWidget {
   const DocumentsPage({super.key});
@@ -52,10 +53,8 @@ class _DocumentsPageState extends State<DocumentsPage> {
         });
         await LocalStorage.saveDocuments(documents);
       } catch (e) {
-        // Логируем ошибку для отладки
         debugPrint('Ошибка загрузки документов с сервера: $e');
 
-        // Пробуем загрузить из локального хранилища
         final docsLocal = await LocalStorage.getDocuments();
         setState(() {
           documents = docsLocal;
@@ -65,7 +64,6 @@ class _DocumentsPageState extends State<DocumentsPage> {
           filteredDocuments = List.from(documents);
         });
 
-        // Показываем пользователю только понятное сообщение
         showErrorSnackBar(context,
             'Не удалось загрузить актуальные документы. Показаны сохранённые данные.');
       }
@@ -84,7 +82,6 @@ class _DocumentsPageState extends State<DocumentsPage> {
       final photoFile = newDoc['photoFile'] as File?;
       final docData = Map<String, dynamic>.from(newDoc)..remove('photoFile');
 
-      // Добавляем дату создания, если не указана
       if (!docData.containsKey('date') ||
           docData['date'] == null ||
           docData['date'].isEmpty) {
@@ -200,6 +197,14 @@ class _DocumentsPageState extends State<DocumentsPage> {
                         _filterDocuments(_searchController.text);
                       },
                       activeColor: kSidebarActiveColor,
+                      fillColor: MaterialStateProperty.resolveWith<Color>(
+                        (Set<MaterialState> states) {
+                          if (states.contains(MaterialState.selected)) {
+                            return kSidebarActiveColor;
+                          }
+                          return kSidebarActiveColor;
+                        },
+                      ),
                     ),
                   )),
             ],
@@ -251,7 +256,8 @@ class _DocumentsPageState extends State<DocumentsPage> {
                       _buildDetailRow('Описание:', doc['type']),
                     if (doc['date'] != null &&
                         doc['date'].toString().isNotEmpty)
-                      _buildDetailRow('Дата:', doc['date']),
+                      _buildDetailRow(
+                          'Дата:', formatDate(doc['date'].toString())),
                     if (doc['name'] != null &&
                         doc['name'].toString().isNotEmpty)
                       _buildDetailRow('Название:', doc['name']),
@@ -300,6 +306,15 @@ class _DocumentsPageState extends State<DocumentsPage> {
         ],
       ),
     );
+  }
+
+  String formatDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      return DateFormat('yyyy-MM-dd').format(date);
+    } catch (_) {
+      return dateStr;
+    }
   }
 
   @override
@@ -401,8 +416,7 @@ class _DocumentsPageState extends State<DocumentsPage> {
                           : 2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio:
-                      0.95, // Увеличено для дополнительного пространства
+                  childAspectRatio: 1,
                 ),
                 itemCount: filteredDocuments.length,
                 itemBuilder: (context, index) {
@@ -424,21 +438,24 @@ class _DocumentsPageState extends State<DocumentsPage> {
           onEnter: (_) => setState(() => isHovered = true),
           onExit: (_) => setState(() => isHovered = false),
           child: AnimatedScale(
-            duration: const Duration(milliseconds: 200),
-            scale: isHovered ? 1.03 : 1.0,
+            duration: const Duration(milliseconds: 100),
+            scale: isHovered ? 1.05 : 1.0,
             child: GestureDetector(
               onTap: () => _showDocumentDetails(doc),
               child: Card(
-                elevation: isHovered ? 8 : 4,
+                elevation: isHovered ? 8 : 2,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                   side: BorderSide(
                     color: isHovered
                         ? kSidebarActiveColor
-                        : kSidebarActiveColor.withOpacity(0.2),
+                        : kSidebarActiveColor.withOpacity(0.3),
                     width: isHovered ? 2 : 1,
                   ),
                 ),
+                color: Theme.of(context).brightness == Brightness.light
+                    ? kSidebarIconColor
+                    : const Color.fromARGB(179, 81, 81, 81),
                 child: Stack(
                   children: [
                     Padding(
@@ -464,8 +481,6 @@ class _DocumentsPageState extends State<DocumentsPage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-
-                          // Название документа
                           Text(
                             doc['name'] ?? 'Без названия',
                             style: const TextStyle(
@@ -476,7 +491,6 @@ class _DocumentsPageState extends State<DocumentsPage> {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-
                           const SizedBox(height: 2),
                           Row(
                             children: [
@@ -499,15 +513,12 @@ class _DocumentsPageState extends State<DocumentsPage> {
                         ],
                       ),
                     ),
-
-                    // Кнопка удаления
                     Positioned(
-                      top: 8,
-                      right: 8,
+                      top: 4,
+                      right: 4,
                       child: IconButton(
-                        icon: const Icon(Icons.delete_outline,
-                            color: Colors.redAccent,
-                            size: 20), // Уменьшен размер
+                        icon: const Icon(Icons.delete,
+                            color: kSidebarActiveColor, size: 22),
                         onPressed: () => _removeDocument(doc['id']),
                         tooltip: 'Удалить документ',
                       ),
@@ -536,15 +547,16 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _typeController = TextEditingController();
-  final _dateController = TextEditingController();
   final _doctorController = TextEditingController();
   File? _photoFile;
+
+  DateTime? _selectedDate;
+  bool _dateError = false;
 
   @override
   void dispose() {
     _nameController.dispose();
     _typeController.dispose();
-    _dateController.dispose();
     _doctorController.dispose();
     super.dispose();
   }
@@ -560,13 +572,66 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
     }
   }
 
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365 * 10)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            inputDecorationTheme: InputDecorationTheme(),
+            textTheme: TextTheme(
+                bodySmall: TextStyle(color: kSidebarActiveColor),
+                displayMedium: TextStyle(fontSize: 16),
+                titleMedium: TextStyle(color: kSidebarActiveColor)),
+            colorScheme: ColorScheme.light(
+                primary: Theme.of(context).brightness == Brightness.light
+                    ? kDarkSidebarIconColor
+                    : kSidebarColor,
+                onPrimary: kSidebarActiveColor,
+                onSurface: kSidebarActiveColor,
+                surface: Theme.of(context).brightness == Brightness.light
+                    ? kSidebarIconColor
+                    : kDarkSidebarIconColor),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: kSidebarActiveColor,
+              ),
+            ),
+            dialogTheme: DialogThemeData(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+        _dateError = false;
+      });
+    }
+  }
+
   void _submit() {
-    if (_formKey.currentState?.validate() != true) return;
+    setState(() {
+      _dateError = _selectedDate == null;
+    });
+
+    if (_formKey.currentState?.validate() != true || _selectedDate == null) {
+      return;
+    }
 
     widget.onAdd({
       'name': _nameController.text.trim(),
       'type': _typeController.text.trim(),
-      'date': _dateController.text.trim(),
+      'date': _selectedDate!.toIso8601String().substring(0, 10),
       'doctor': _doctorController.text.trim(),
       'photoFile': _photoFile,
     });
@@ -659,47 +724,40 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
                     v == null || v.trim().isEmpty ? 'Укажите описание' : null,
               ),
               const SizedBox(height: 15),
-              TextFormField(
-                controller: _dateController,
-                cursorColor: accent,
-                decoration: InputDecoration(
-                  labelText: 'Дата (ГГГГ-ММ-ДД)*',
-                  labelStyle: TextStyle(
-                      color: accent.withOpacity(0.5),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 22),
-                  enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: accent, width: 1.5)),
-                  floatingLabelStyle: TextStyle(
-                    color: accent,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: accent,
-                      width: 4.0,
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _selectedDate == null
+                              ? 'Дата не выбрана'
+                              : 'Дата: ${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}',
+                          style: TextStyle(
+                            color: _dateError ? Colors.red : null,
+                          ),
+                        ),
+                        if (_dateError)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              'Пожалуйста, выберите дату',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: accent, width: 1),
+                  TextButton(
+                    onPressed: _pickDate,
+                    child:
+                        Text('Выбрать дату', style: TextStyle(color: accent)),
                   ),
-                  hintText: 'Например: 1234-12-31',
-                  hintStyle: TextStyle(
-                      color: kSidebarActiveColor.withOpacity(0.5),
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold),
-                  filled: false,
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Укажите дату';
-                  if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(value)) {
-                    return 'Используйте формат ГГГГ-ММ-ДД';
-                  }
-                  return null;
-                },
+                ],
               ),
               const SizedBox(height: 15),
               TextFormField(
@@ -737,9 +795,15 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
+                      style: ButtonStyle(
+                        side: MaterialStateProperty.all(
+                          BorderSide(color: accent, width: 2),
+                        ),
+                      ),
                       icon: Icon(Icons.image, color: accent),
                       label: Text(
-                          _photoFile != null ? 'Фото выбрано' : 'Выбрать фото'),
+                          _photoFile != null ? 'Фото выбрано' : 'Выбрать фото',
+                          style: TextStyle(color: accent)),
                       onPressed: _pickPhoto,
                     ),
                   ),
