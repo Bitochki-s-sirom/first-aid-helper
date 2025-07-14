@@ -33,7 +33,7 @@ type DocumentUploadRequest struct {
 // @Router /auth/documents [get]
 func (ds *DocumentService) Documents(w http.ResponseWriter, r *http.Request) {
 	// Get user id from request context
-	userID, err := GetUserFromContext(r.Context())
+	userID, _, err := GetUserFromContext(r.Context(), ds.DB.DB)
 	if err != nil {
 		log.Printf("Error fetching user: %v", err)
 		WriteError(w, 500, "database error")
@@ -69,7 +69,7 @@ func (ds *DocumentService) AddDocument(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get user from request context
-	userID, err := GetUserFromContext(r.Context())
+	userID, _, err := GetUserFromContext(r.Context(), ds.DB.DB)
 	if err != nil {
 		log.Printf("Error fetching user: %v", err)
 		WriteError(w, 500, "database error")
@@ -110,6 +110,13 @@ func (ds *DocumentService) RemoveDocument(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		log.Printf("Error removing document in RemoveDocument: %v", err)
 		WriteError(w, 500, err.Error())
+		return
+	}
+
+	_, _, err = GetUserFromContext(r.Context(), ds.DB.DB)
+	if err != nil {
+		log.Printf("Error removing document in RemoveDocument: %v", err)
+		WriteError(w, 409, err.Error())
 		return
 	}
 

@@ -44,6 +44,12 @@ type MessageService struct {
 func (ms *MessageService) NewMessage(w http.ResponseWriter, r *http.Request) {
 	var request MessageRequest
 
+	_, _, err := GetUserFromContext(r.Context(), ms.DB.DB)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "nor authorized")
+		return
+	}
+
 	// Decode incoming JSON request into MessageRequest struct
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		WriteError(w, http.StatusBadRequest, "invalid JSON format")
