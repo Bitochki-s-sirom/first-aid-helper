@@ -22,7 +22,7 @@ func main() {
 
 	// Get variables
 	apiKey := os.Getenv("GEMINI_API_KEY")
-	dsn := os.Getenv("DSN")
+	dsn := "host=postgres  user=postgres password=your_secure_password dbname=firstaid port=5432 sslmode=disable"
 
 	// Initialize DB service
 	dbService, _ := services.NewDBService(apiKey, dsn)
