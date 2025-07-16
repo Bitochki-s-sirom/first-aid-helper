@@ -36,5 +36,5 @@ jobs:
             git pull origin main
             sudo -E docker compose down
             export GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}"
-            export API_URL="${{ secrets.SERVER_HOST }}"
+            export API_URL="${{ secrets.API_URL }}"
             sudo -E docker compose up -d --build
