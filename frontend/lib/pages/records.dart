@@ -255,8 +255,8 @@ class _DocumentsPageState extends State<DocumentsPage> {
                             _showFullScreenImage(doc['file_data'], doc['id']),
                         child: Container(
                           constraints: BoxConstraints(
-                            maxHeight: MediaQuery.of(context).size.height * 0.6,
-                            maxWidth: MediaQuery.of(context).size.width * 0.9,
+                            maxHeight: MediaQuery.of(context).size.height * 1.2,
+                            maxWidth: MediaQuery.of(context).size.width * 1.4,
                           ),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
