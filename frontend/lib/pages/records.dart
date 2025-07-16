@@ -344,8 +344,8 @@ class _DocumentsPageState extends State<DocumentsPage> {
                   tag: 'image_$docId',
                   child: Container(
                     constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width,
-                      maxHeight: MediaQuery.of(context).size.height * 0.8,
+                      maxWidth: MediaQuery.of(context).size.width * 2,
+                      maxHeight: MediaQuery.of(context).size.height * 1.6,
                     ),
                     child: buildDocumentImage(
                       fileData,
