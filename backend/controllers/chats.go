@@ -28,7 +28,7 @@ func (cs *ChatService) NewChat(w http.ResponseWriter, r *http.Request) {
 	userID, _, err := GetUserFromContext(r.Context(), cs.DB.DB)
 	if err != nil {
 		log.Printf("Error getting user in NewChat: %v", err)
-		WriteError(w, 500, err.Error())
+		WriteError(w, 401, err.Error())
 		return
 	}
 
@@ -63,7 +63,7 @@ func (cs *ChatService) GetUsersChats(w http.ResponseWriter, r *http.Request) {
 	userID, _, err := GetUserFromContext(r.Context(), cs.DB.DB)
 	if err != nil {
 		log.Printf("Error getting user in NewChat: %v", err)
-		WriteError(w, 500, err.Error())
+		WriteError(w, 401, err.Error())
 		return
 	}
 
