@@ -1,12 +1,14 @@
 import 'dart:io';
-import 'dart:typed_data';
 import '../widgets/docimage.dart';
 import 'package:flutter/material.dart';
 import '../colors/colors.dart';
 import '../services/local_storage.dart';
+import 'package:flutter/foundation.dart';
 import '../services/api_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'dart:html' as html;
+import 'dart:typed_data';
 
 class DocumentsPage extends StatefulWidget {
   const DocumentsPage({super.key});
@@ -550,7 +552,9 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
   final _nameController = TextEditingController();
   final _typeController = TextEditingController();
   final _doctorController = TextEditingController();
+
   File? _photoFile;
+  Uint8List? _webImage;
 
   DateTime? _selectedDate;
   bool _dateError = false;
@@ -567,10 +571,18 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
     final picker = ImagePicker();
     final picked =
         await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+
     if (picked != null) {
-      setState(() {
-        _photoFile = File(picked.path);
-      });
+      if (kIsWeb) {
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _webImage = bytes;
+        });
+      } else {
+        setState(() {
+          _photoFile = File(picked.path);
+        });
+      }
     }
   }
 
@@ -579,7 +591,7 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
     final picked = await showDatePicker(
       context: context,
       initialDate: now,
-      firstDate: now,
+      firstDate: DateTime(1900),
       lastDate: now.add(const Duration(days: 365 * 10)),
       builder: (context, child) {
         return Theme(
@@ -613,6 +625,7 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
         );
       },
     );
+
     if (picked != null) {
       setState(() {
         _selectedDate = picked;
@@ -636,13 +649,16 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
       'date': _selectedDate!.toIso8601String().substring(0, 10),
       'doctor': _doctorController.text.trim(),
       'photoFile': _photoFile,
+      'webImage': _webImage, // отправим в случае web
     });
+
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final accent = kSidebarActiveColor;
+
     return Dialog(
       backgroundColor: kSidebarColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -804,22 +820,25 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
                       ),
                       icon: Icon(Icons.image, color: accent),
                       label: Text(
-                          _photoFile != null ? 'Фото выбрано' : 'Выбрать фото',
+                          (_webImage != null || _photoFile != null)
+                              ? 'Фото выбрано'
+                              : 'Выбрать фото',
                           style: TextStyle(color: accent)),
                       onPressed: _pickPhoto,
                     ),
                   ),
                 ],
               ),
-              if (_photoFile != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxHeight: 200,
-                    ),
-                    child: Image.file(_photoFile!),
-                  ),
+              const SizedBox(height: 10),
+              if (kIsWeb && _webImage != null)
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  child: Image.memory(_webImage!),
+                )
+              else if (!kIsWeb && _photoFile != null)
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  child: Image.file(_photoFile!),
                 ),
               const SizedBox(height: 24),
               ElevatedButton(

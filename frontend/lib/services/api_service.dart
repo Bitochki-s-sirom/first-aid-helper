@@ -241,12 +241,9 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        // Исправление: обработка структуры ответа сервера
         if (data is Map && data.containsKey('data') && data['data'] is List) {
           return (data['data'] as List).cast<Map<String, dynamic>>();
-        }
-        // Если ответ не содержит поле 'data', но является массивом
-        else if (data is List) {
+        } else if (data is List) {
           return data.cast<Map<String, dynamic>>();
         }
 
@@ -288,7 +285,6 @@ class ApiService {
         docToSend.remove('file_data');
       }
 
-      // Создаем запрос
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/documents/add'),
         headers: {
