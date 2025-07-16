@@ -16,6 +16,8 @@ dependencies:
   flutter_markdown: ^0.6.10
   image_picker: ^1.0.7
   intl: ^0.18.0
+  mockito: ^5.4.4
+  build_runner: ^2.4.9
   http: ^1.1.0
 
 

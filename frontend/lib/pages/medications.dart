@@ -666,7 +666,7 @@ class _AddMedicationDialogState extends State<AddMedicationDialog> {
     final picked = await showDatePicker(
       context: context,
       initialDate: now,
-      firstDate: now,
+      firstDate: DateTime(1900),
       lastDate: now.add(const Duration(days: 365 * 10)),
       builder: (context, child) {
         return Theme(
