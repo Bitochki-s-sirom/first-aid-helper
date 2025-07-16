@@ -249,6 +249,16 @@ class _DocumentsPageState extends State<DocumentsPage> {
                       ),
                     ),
                     const SizedBox(height: 10),
+                    Text(
+                      'Нажмите на фото для увеличения',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
                     Center(
                       child: GestureDetector(
                         onTap: () =>
@@ -324,6 +334,7 @@ class _DocumentsPageState extends State<DocumentsPage> {
                 panEnabled: true,
                 minScale: 0.5,
                 maxScale: 4.0,
+                boundaryMargin: EdgeInsets.all(20),
                 child: Hero(
                   tag: 'image_$docId',
                   child: Container(
@@ -536,24 +547,48 @@ class _DocumentsPageState extends State<DocumentsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Center(
-                            child: Hero(
-                              tag: 'image_${doc['id']}',
-                              child: Container(
-                                height: 150,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  color: Colors.grey[200],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: buildDocumentImage(
-                                    doc['file_data'],
-                                    fit: BoxFit.contain,
+                          // Фиксированный контейнер для превью
+                          Container(
+                            height: 120, // Фиксированная высота
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.grey[200],
+                            ),
+                            child: Stack(
+                              children: [
+                                Center(
+                                  child: Hero(
+                                    tag: 'image_${doc['id']}',
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: buildDocumentImage(
+                                        doc['file_data'],
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                                Positioned(
+                                  bottom: 4,
+                                  right: 4,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      'Нажмите для увеличения',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 8),
