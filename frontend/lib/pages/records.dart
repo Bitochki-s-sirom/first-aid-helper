@@ -232,7 +232,7 @@ class _DocumentsPageState extends State<DocumentsPage> {
           ),
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.8,
+              maxHeight: MediaQuery.of(context).size.height * 0.9,
             ),
             child: SingleChildScrollView(
               child: Padding(
@@ -253,26 +253,41 @@ class _DocumentsPageState extends State<DocumentsPage> {
                       child: GestureDetector(
                         onTap: () =>
                             _showFullScreenImage(doc['file_data'], doc['id']),
-                        child: Hero(
-                          tag: 'image_${doc['id']}',
-                          child: Container(
-                            constraints: BoxConstraints(
-                              maxHeight:
-                                  MediaQuery.of(context).size.height * 0.5,
-                              maxWidth: MediaQuery.of(context).size.width * 0.8,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: Colors.grey[200],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: buildDocumentImage(
-                                doc['file_data'],
-                                fit: BoxFit.contain,
+                        child: Container(
+                          constraints: BoxConstraints(
+                            maxHeight: MediaQuery.of(context).size.height * 0.6,
+                            maxWidth: MediaQuery.of(context).size.width * 0.9,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.grey[200],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: InteractiveViewer(
+                              panEnabled: true,
+                              minScale: 1.0,
+                              maxScale: 4.0,
+                              child: Hero(
+                                tag: 'image_${doc['id']}',
+                                child: buildDocumentImage(
+                                  doc['file_data'],
+                                  fit: BoxFit.contain,
+                                ),
                               ),
                             ),
                           ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: Text(
+                        'Нажмите на фото для полноэкранного просмотра',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
                         ),
                       ),
                     ),
@@ -324,12 +339,13 @@ class _DocumentsPageState extends State<DocumentsPage> {
                 panEnabled: true,
                 minScale: 0.5,
                 maxScale: 4.0,
+                boundaryMargin: EdgeInsets.all(20),
                 child: Hero(
                   tag: 'image_$docId',
                   child: Container(
                     constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width,
-                      maxHeight: MediaQuery.of(context).size.height * 0.8,
+                      maxWidth: MediaQuery.of(context).size.width * 2,
+                      maxHeight: MediaQuery.of(context).size.height * 1.6,
                     ),
                     child: buildDocumentImage(
                       fileData,
@@ -536,24 +552,48 @@ class _DocumentsPageState extends State<DocumentsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Center(
-                            child: Hero(
-                              tag: 'image_${doc['id']}',
-                              child: Container(
-                                height: 150,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  color: Colors.grey[200],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: buildDocumentImage(
-                                    doc['file_data'],
-                                    fit: BoxFit.contain,
+                          // Фиксированный контейнер для превью
+                          Container(
+                            height: 120, // Фиксированная высота
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.grey[200],
+                            ),
+                            child: Stack(
+                              children: [
+                                Center(
+                                  child: Hero(
+                                    tag: 'image_${doc['id']}',
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: buildDocumentImage(
+                                        doc['file_data'],
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                                Positioned(
+                                  bottom: 4,
+                                  right: 4,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      'Нажмите для увеличения',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 8),
