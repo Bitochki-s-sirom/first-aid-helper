@@ -70,7 +70,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _loadUserData() async {
     try {
+      print('Loading user data...');
       final authData = await LocalStorage.getAuthData();
+      print('Loaded auth data: $authData');
+
       if (mounted) {
         setState(() {
           firstName = authData?['name'] ?? 'Гость';
@@ -90,8 +93,10 @@ class _ProfilePageState extends State<ProfilePage> {
           _originalSnils = snils;
           _originalChronic = chronic;
         });
+        print('State updated with new data');
       }
     } catch (e) {
+      print('Error loading user data: $e');
       if (mounted) {
         setState(() {
           firstName = 'Ошибка загрузки';
@@ -163,16 +168,25 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 onPressed: hasChanges
                     ? () async {
-                        onSave();
+                        if (label == 'Группа крови') {
+                          setState(() => blood = controller.text);
+                        } else if (label == 'Паспорт') {
+                          setState(() => pass = controller.text);
+                        } else if (label == 'СНИЛС') {
+                          setState(() => snils = controller.text);
+                        }
+
+                        await onSave();
                         await _loadUserData();
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             width: 268,
                             content: Center(
-                                child: Text(
-                              'Изменения сохранены',
-                              style: TextStyle(color: kSidebarIconColor),
-                            )),
+                              child: Text(
+                                'Изменения сохранены',
+                                style: TextStyle(color: kSidebarIconColor),
+                              ),
+                            ),
                             duration: Duration(seconds: 2),
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(
@@ -275,14 +289,26 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   onPressed: hasChanges
                       ? () async {
+                          setState(() {
+                            chronic = _chronicController.text;
+                          });
+                          await LocalStorage.updateAuthData({
+                            'blood_type': _bloodController.text,
+                            'passport': _passController.text,
+                            'snils': _snilsController.text,
+                            'chronic_cond': _chronicController.text,
+                          });
+                          await _loadUserData();
+                          FocusScope.of(context).unfocus();
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               width: 268,
                               content: Center(
-                                  child: Text(
-                                'Изменения сохранены',
-                                style: TextStyle(color: kSidebarIconColor),
-                              )),
+                                child: Text(
+                                  'Изменения сохранены',
+                                  style: TextStyle(color: kSidebarIconColor),
+                                ),
+                              ),
                               duration: Duration(seconds: 2),
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(
@@ -291,14 +317,6 @@ class _ProfilePageState extends State<ProfilePage> {
                               backgroundColor: kSidebarActiveColor,
                             ),
                           );
-                          await _loadUserData();
-                          await LocalStorage.updateAuthData({
-                            'blood_type': blood,
-                            'passport': pass,
-                            'snils': snils,
-                            'chronic_cond': chronic,
-                          });
-                          FocusScope.of(context).unfocus();
                         }
                       : null,
                 ),

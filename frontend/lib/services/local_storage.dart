@@ -81,9 +81,11 @@ class LocalStorage {
       final token = prefs.getString(_authTokenKey);
 
       if (token == null) {
+        print('Token is null');
         return false;
       }
 
+      print('Sending update to server: $newData');
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/me'),
         headers: {
@@ -93,6 +95,7 @@ class LocalStorage {
         body: jsonEncode(newData),
       );
 
+      print('Server response: ${response.statusCode} ${response.body}');
       if (response.statusCode != 200) {
         return false;
       }
@@ -103,10 +106,12 @@ class LocalStorage {
       );
 
       if (updatedResponse.statusCode != 200) {
+        print('Failed to fetch updated data');
         return false;
       }
 
       final updatedData = jsonDecode(updatedResponse.body);
+      print('Updated data from server: $updatedData');
 
       await prefs.setString(_name, updatedData['name'] ?? '');
       await prefs.setString(_email, updatedData['email'] ?? '');
