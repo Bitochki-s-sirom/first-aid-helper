@@ -45,7 +45,7 @@ CMD ["flutter", "run", "-d", "web-server", "--web-port", "3000", "--web-hostname
 FROM development AS builder
 
 # Build for web
-RUN flutter build web --release --dart-define API_URL=$API_URL
+RUN flutter build web --release --no-cache --dart-define API_URL=$API_URL
 
 # Production stage with nginx
 FROM nginx:alpine AS production
