@@ -648,7 +648,7 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
       'date': _selectedDate!.toIso8601String().substring(0, 10),
       'doctor': _doctorController.text.trim(),
       'photoFile': _photoFile,
-      'webImage': _webImage, // отправим в случае web
+      'webImage': _webImage,
     });
 
     Navigator.pop(context);
