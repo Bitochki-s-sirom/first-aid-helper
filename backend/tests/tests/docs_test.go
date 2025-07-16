@@ -1,9 +1,10 @@
-package integration
+package tests
 
 import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"first_aid_companion/controllers"
 	"fmt"
 	"net/http"
 	"testing"
@@ -13,6 +14,16 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
+
+type Document struct {
+	ID       uint      `json:"id"`
+	UserID   uint      `json:"user_id"`
+	Name     string    `json:"name"`
+	Type     string    `json:"type"`
+	Date     time.Time `json:"date"`
+	Doctor   string    `json:"doctor"`
+	FileData []byte    `json:"file_data"`
+}
 
 type DocumentTestSuite struct {
 	suite.Suite
@@ -62,17 +73,25 @@ func (suite *DocumentTestSuite) Test2_GetDocuments() {
 
 	require.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	// API returns a raw JSON array of documents
-	var docs []map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&docs)
+	// Decode response into APIResponse
+	var response controllers.APIResponse
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	require.NoError(suite.T(), err)
+
+	// Convert response.Data to JSON, then into []Document
+	dataBytes, err := json.Marshal(response.Data)
+	require.NoError(suite.T(), err)
+
+	var docs []Document
+	err = json.Unmarshal(dataBytes, &docs)
 	require.NoError(suite.T(), err)
 
 	assert.Greater(suite.T(), len(docs), 0, "Expected at least one document")
 
-	// verify our sample exists by matching the name field
+	// Verify the sample document exists by matching the name field
 	found := false
 	for _, doc := range docs {
-		if name, ok := doc["name"].(string); ok && name == suite.sample["name"].(string) {
+		if doc.Name == suite.sample["name"].(string) {
 			found = true
 			break
 		}

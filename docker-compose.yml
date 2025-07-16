@@ -1,0 +1,44 @@
+services:
+  backend:
+    image: go-backend:latest
+    build: ./backend
+    ports:
+      - "8080:8080"
+    container_name: backend
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  frontend:
+    image: flutter-frontend:latest
+    build: ./frontend
+    ports:
+      - "80:80"
+    container_name: frontend
+    depends_on:
+      - backend
+
+  postgres: 
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your_secure_password
+      POSTGRES_DB: firstaid
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    container_name: postgres-db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d firstaid"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s 
+
+volumes:
+  postgres_data:
