@@ -146,19 +146,7 @@ packages:
       sha256: "6ba465d5d76e67ddf503e1161d1f4a6bc42306f9d66ca1e8f079a47290fb06d3"
       url: "https://pub.dev"
     source: hosted
-<<<<<<< HEAD
-    version: "3.0.2"
-  logging:
-    dependency: transitive
-    description:
-      name: logging
-      sha256: c8245ada5f1717ed44271ed1c26b8ce85ca3228fd2ffdb75468ab01979309d61
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.3.0"
-=======
     version: "3.0.1"
->>>>>>> d0be5bec005bbd1f5c377a7424024edceadc5baf
   lottie:
     dependency: "direct main"
     description:
