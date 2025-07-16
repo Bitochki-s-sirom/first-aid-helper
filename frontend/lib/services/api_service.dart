@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import '../config/config.dart';
 
 class ApiService {
-  static const String _baseUrl = 'http://localhost:8080';
+  static final String _baseUrl = Config.apiBaseUrl;
 
   static Future<bool> validateToken(String token) async {
     try {
