@@ -232,7 +232,7 @@ class _DocumentsPageState extends State<DocumentsPage> {
           ),
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.8,
+              maxHeight: MediaQuery.of(context).size.height * 0.9,
             ),
             child: SingleChildScrollView(
               child: Padding(
@@ -249,40 +249,45 @@ class _DocumentsPageState extends State<DocumentsPage> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Text(
-                      'Нажмите на фото для увеличения',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontStyle: FontStyle.italic,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 10),
                     Center(
                       child: GestureDetector(
                         onTap: () =>
                             _showFullScreenImage(doc['file_data'], doc['id']),
-                        child: Hero(
-                          tag: 'image_${doc['id']}',
-                          child: Container(
-                            constraints: BoxConstraints(
-                              maxHeight:
-                                  MediaQuery.of(context).size.height * 0.5,
-                              maxWidth: MediaQuery.of(context).size.width * 0.8,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: Colors.grey[200],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: buildDocumentImage(
-                                doc['file_data'],
-                                fit: BoxFit.contain,
+                        child: Container(
+                          constraints: BoxConstraints(
+                            maxHeight: MediaQuery.of(context).size.height * 0.6,
+                            maxWidth: MediaQuery.of(context).size.width * 0.9,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.grey[200],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: InteractiveViewer(
+                              panEnabled: true,
+                              minScale: 1.0,
+                              maxScale: 4.0,
+                              child: Hero(
+                                tag: 'image_${doc['id']}',
+                                child: buildDocumentImage(
+                                  doc['file_data'],
+                                  fit: BoxFit.contain,
+                                ),
                               ),
                             ),
                           ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: Text(
+                        'Нажмите на фото для полноэкранного просмотра',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
                         ),
                       ),
                     ),
