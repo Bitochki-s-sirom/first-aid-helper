@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 import '../services/api_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'dart:html' as html;
 import 'dart:typed_data';
 
 class DocumentsPage extends StatefulWidget {
