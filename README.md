@@ -1,36 +1,89 @@
-# First-aid Helper - Full-stack Medical Companion Application
+<a id="readme-top"></a>
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Features](#features)
-- [Architecture Overview](#architecture-overview)
-- [Project Structure](#project-structure)
-- [Setup Instructions](#setup-instructions)
-- [API Documentation](#api-documentation)
-- [Testing](#testing)
-- [Usage Guide](#usage-guide)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
-- [Implementation Checklist](#implementation-checklist)
-- [License](#license)
+<div align="center">
 
-## Introduction
-First-aid Helper is a comprehensive full-stack application designed to help users manage their medical information and receive AI-powered emergency assistance. Built with a Go (Golang) backend using GORM and Gorilla/Mux, and a Flutter frontend for cross-platform compatibility, this application provides essential medical management features for web and mobile devices.
+# First-aid Helper
 
-## Features
-- **AI-Powered Emergency Chat**: Real-time chat with AI assistant for medical guidance
-- **Medical Profile Management**:
+<p>
+  <strong>🚑 A full-stack medical companion application for emergency assistance and health management</strong>
+</p>
+
+<p>
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-blue.svg"/>
+  <img alt="Go" src="https://img.shields.io/badge/Go-1.24+-blue?logo=go&logoColor=white"/>
+  <img alt="Flutter" src="https://img.shields.io/badge/Flutter-3.0+-blue?logo=flutter&logoColor=white"/>
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-12+-blue?logo=postgresql&logoColor=white"/>
+</p>
+
+<p>
+   <a href="#getting-started">🛠️ Get Started</a>
+   &middot;
+   <a href="#features">✨ Features</a>
+   &middot;
+   <a href="#api-documentation">📚 API Docs</a>
+</p>
+</div>
+
+<details>
+  <summary><strong>📑 Table of Contents</strong></summary>
+  <ul>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#team">Team</a></li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#getting-started">Getting Started</a></li>
+    <li><a href="#structure">Project structure</a></li>
+    <li><a href="#api-documentation">API Documentation</a></li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#testing">Testing</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+  </ul>
+</details>
+
+---
+
+## <a id="overview"></a>🎯 Overview
+
+**First-aid Helper** is a comprehensive full-stack application designed to help users manage their medical information and receive AI-powered emergency assistance. Built with a Go (Golang) backend and Flutter frontend, this application provides essential medical management features for web and mobile devices.
+
+<p align="right">(<a href="#readme-top">🔝 back to top</a>)</p>
+
+## <a id="features"></a>✨ Features
+
+- **🤖 AI-Powered Emergency Chat**: Real-time chat with AI assistant for medical guidance
+- **📋 Medical Profile Management**:
   - Personal information storage
   - Medical card with allergies, chronic diseases, blood type
   - ID number and series storage
-- **Drug Manager**:
+- **💊 Drug Manager**:
   - Medication tracking with details
   - Expiration date monitoring
   - Automatic reminder system
-- **Medical Document Manager**: Secure storage for medical documents
-- **Cross-Platform Support**: Web and mobile (iOS/Android) compatibility
+- **📂 Medical Document Manager**: Secure storage for medical documents
+- **📱 Cross-Platform Support**: Web and mobile (iOS/Android) compatibility
 
-## Architecture Overview
+<p align="right">(<a href="#readme-top">🔝 back to top</a>)</p>
+
+---
+
+## <a id="team"></a>👥 Our Team
+
+<div align="center">
+
+| Role | Member | Contact |
+|------|--------|---------|
+| 👨‍💻 **Backend** | [Danil Popov](https://github.com/PopovDanil) | @Danil_P0pov |
+| 🎨 **Frontend** | [Vadim Poponnikov](https://github.com/shanme) | @VShanmay |
+| 🛠️ **DevOps Engineer** | [Arseniy Boiko](https://github.com/demonit4028) | @demonit4028 |
+
+</div>
+
+<p align="right">(<a href="#readme-top">🔝 back to top</a>)</p>
+
+---
+
+## <a id="architecture"></a>🏗️ Architecture
 
 ### Backend Architecture
 ```mermaid
@@ -38,21 +91,84 @@ graph LR
 A[Client] --> B[Gorilla/Mux Router]
 B --> C[Middleware]
 C --> D[Controllers]
-D --> E[Services]
-E --> F[GORM Models]
+D --> F[GORM Models]
 F --> G[(PostgreSQL Database)]
 ```
 
 ### Frontend Architecture
 ```mermaid
 graph TD
-A[Flutter UI] --> B[BLoC State Management]
+A[Flutter UI] --> B[State Management]
 B --> C[API Services]
 C --> D[Backend]
 B --> E[Local Storage]
 ```
 
-## Project Structure
+More detailed information about structure can be found <a href="#structure">here</a>.
+
+<p align="right">(<a href="#readme-top">🔝 back to top</a>)</p>
+
+---
+
+<a id="getting-started"></a>🚀 Getting Started
+
+### Prerequisites
+- Go 1.24+ (for backend)
+- Flutter 3.0+ (for frontend)
+- PostgreSQL 12+
+
+
+### Backend Setup
+
+1. Clone the repository:
+```bash
+git clone https://github.com/Bitochki-s-sirom/first-aid-helper.git
+cd first-aid-helper/backend
+```
+
+2. Set up environment variables:
+```bash
+touch .env
+```
+Add GEMINI_API_KEY and DSN. For details contact the development team.
+
+3. Install dependencies:
+```bash
+go mod download
+```
+
+4. Start the server:
+```bash
+go run main.go
+```
+
+### Flutter setup
+
+1. Navigate to frontend directory:
+```bash
+cd ../frontend
+```
+
+2. Install dependencies:
+```bash
+flutter pub get
+```
+
+3. Configure API endpoint:
+```bash
+# Edit lib/src/utils/constants.dart
+const String API_BASE_URL = "http://localhost:8080";
+```
+
+4. Run the application:
+```bash
+flutter run
+```
+<p align="right">(<a href="#readme-top">🔝 back to top</a>)</p>
+
+---
+
+## <a id="structure"></a>🏗️ Project Structure
 
 ### Backend
 ```text
@@ -114,62 +230,11 @@ frontend/
 └── ...                     # Other Flutter project files
 ```
 
-## Setup Instructions
+<p align="right">(<a href="#readme-top">🔝 back to top</a>)</p>
 
-### Prerequisites
-- Go 1.24+ (for backend)
-- Flutter 3.0+ (for frontend)
-- PostgreSQL 12+
+---
 
-
-### Backend Setup
-
-1. Clone the repository:
-```bash
-git clone https://github.com/Bitochki-s-sirom/first-aid-helper.git
-cd first-aid-helper/backend
-```
-
-2. Set up environment variables:
-```bash
-touch .env
-```
-Add GEMINI_API_KEY and DSN. For details contact the development team.
-
-3. Install dependencies:
-```bash
-go mod download
-```
-
-4. Start the server:
-```bash
-go run main.go
-```
-
-### Flutter setup
-
-1. Navigate to frontend directory:
-```bash
-cd ../frontend
-```
-
-2. Install dependencies:
-```bash
-flutter pub get
-```
-
-3. Configure API endpoint:
-```bash
-# Edit lib/src/utils/constants.dart
-const String API_BASE_URL = "http://localhost:8080";
-```
-
-4. Run the application:
-```bash
-flutter run
-```
-
-## API Documentation
+## <a id="api-documentation"></a>📚 API Documentation
 
 The backend API follows RESTful conventions and is documented using Swagger. After starting the backend server, access the API documentation at:
 ```
@@ -227,29 +292,11 @@ http://localhost:8080/swagger/
 4. Response Format: JSON payloads with standardized response structures
 For detailed request/response schemas and examples, visit the interactive Swagger documentation at /swagger/ when the server is running.
 
-## Testing
+<p align="right">(<a href="#readme-top">🔝 back to top</a>)</p>
 
-### Backend Testing
-Integration tests are located in the ```tests/integration``` directory. To run tests:
-```bash
-cd backend
-go test -v ./tests/integration/...
-```
+---
 
-Key test files:
-- ```auth_test.go```: Authentication flow tests
-- ```chat_test.go```: AI chat functionality tests
-- ```docs_test.go```: Document management tests
-- ```drugs_test.go```: Medication operations tests
-
-### Flutter Testing
-Run Flutter tests with:
-```bash
-\cd frontend
-flutter test
-```
-
-## Usage Guide
+## <a id="usage"></a>📖 Usage
 
 ### Setting Up Your Profile
 1. Register a new account
@@ -280,8 +327,37 @@ flutter test
 2. Upload images or scanned documents
 3. Organize by category (prescriptions, reports, etc.)
 
+<p align="right">(<a href="#readme-top">🔝 back to top</a>)</p>
 
-## Contributing
+---
+
+## <a id="testing"></a>🧪 Testing
+
+### Backend Testing
+Integration tests are located in the ```tests/integration``` directory. To run tests:
+```bash
+cd backend
+go test -v ./tests/integration/...
+```
+
+Key test files:
+- ```auth_test.go```: Authentication flow tests
+- ```chat_test.go```: AI chat functionality tests
+- ```docs_test.go```: Document management tests
+- ```drugs_test.go```: Medication operations tests
+
+### Flutter Testing
+Run Flutter tests with:
+```bash
+\cd frontend
+flutter test
+```
+
+<p align="right">(<a href="#readme-top">🔝 back to top</a>)</p>
+
+---
+
+## <a id="contributing"></a>🤝 Contributing
 We welcome contributions! Please follow these steps:
 
 1. Fork the repository
@@ -295,8 +371,11 @@ Please ensure all contributions include:
 - Updated documentation
 - Consistent coding style
 
+<p align="right">(<a href="#readme-top">🔝 back to top</a>)</p>
 
-## Implementation checklist
+---
+
+## <a id="checklist"></a>✅ Implementation checklist
 
 ### Technical requirements (20 points)
 #### Backend development (8 points)
@@ -347,8 +426,13 @@ Please ensure all contributions include:
 
 Total points implemented: 28/30
 
-## License
+<p align="right">(<a href="#readme-top">🔝 back to top</a>)</p>
+
+---
+
+## <a id="license"></a>📜 License
 This project is licensed under the [MIT License](LICENSE).
 
 ---
+
 **Disclaimer**: This application provides general medical information and should not be used as a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.

@@ -21,6 +21,7 @@ type DBService struct {
 }
 
 func NewDBService(ApiKey, dsn string) (*DBService, error) {
+	dsn = "host=localhost user=postgres password=1121 dbname=firstaid port=5432 sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
