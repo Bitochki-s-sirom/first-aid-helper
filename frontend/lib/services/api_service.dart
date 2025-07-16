@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../config/config.dart';
 
 class ApiService {
-  static final String _baseUrl = Config.apiBaseUrl;
+  static const String _baseUrl = Config.apiBaseUrl;
 
   static Future<bool> validateToken(String token) async {
     try {
