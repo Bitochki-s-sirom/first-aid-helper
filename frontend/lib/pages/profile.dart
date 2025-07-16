@@ -75,10 +75,10 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           firstName = authData?['name'] ?? 'Гость';
           email = authData?['email'] ?? 'Гость';
-          blood = authData?['blood_type'] ?? 'Гость';
-          chronic = authData?['chronic_cond'] ?? 'Гость';
-          pass = authData?['passport'] ?? 'Гость';
-          snils = authData?['snils'] ?? 'Гость';
+          blood = authData?['blood_type'] ?? 'не указан';
+          chronic = authData?['chronic_cond'] ?? 'не указан';
+          pass = authData?['passport'] ?? 'не указан';
+          snils = authData?['snils'] ?? 'не указан';
 
           _bloodController.text = blood;
           _passController.text = pass;
@@ -162,16 +162,9 @@ class _ProfilePageState extends State<ProfilePage> {
                           : kDarkSidebarIconColor,
                 ),
                 onPressed: hasChanges
-                    ? () {
+                    ? () async {
                         onSave();
-                        setState(() {
-                          if (label == 'Группа крови')
-                            _originalBlood = controller.text;
-                          if (label == 'Паспорт')
-                            _originalPass = controller.text;
-                          if (label == 'СНИЛС')
-                            _originalSnils = controller.text;
-                        });
+                        await _loadUserData();
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             width: 268,
@@ -298,10 +291,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               backgroundColor: kSidebarActiveColor,
                             ),
                           );
-                          setState(() {
-                            chronic = _chronicController.text;
-                            _originalChronic = chronic;
-                          });
+                          await _loadUserData();
                           await LocalStorage.updateAuthData({
                             'blood_type': blood,
                             'passport': pass,
