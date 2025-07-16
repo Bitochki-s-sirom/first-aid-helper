@@ -242,13 +242,20 @@ class _DocumentsPageState extends State<DocumentsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 24),
-                    Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxHeight: MediaQuery.of(context).size.height * 0.4,
-                          maxWidth: MediaQuery.of(context).size.width * 0.8,
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showFullScreenImage(doc['file_data']);
+                      },
+                      child: Hero(
+                        tag: 'image_${doc['id']}',
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxHeight: MediaQuery.of(context).size.height * 0.4,
+                            maxWidth: MediaQuery.of(context).size.width * 0.8,
+                          ),
+                          child: buildDocumentImage(doc['file_data']),
                         ),
-                        child: buildDocumentImage(doc['file_data']),
                       ),
                     ),
                     const SizedBox(height: 25),
@@ -273,6 +280,37 @@ class _DocumentsPageState extends State<DocumentsPage> {
           ),
         );
       },
+    );
+  }
+
+  void _showFullScreenImage(dynamic fileData) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (BuildContext context, _, __) {
+          return Scaffold(
+            backgroundColor: Colors.black.withOpacity(0.8),
+            body: Center(
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Hero(
+                  tag: 'image_${fileData.hashCode}',
+                  child: InteractiveViewer(
+                    panEnabled: true,
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: buildDocumentImage(
+                      fileData,
+                      width: MediaQuery.of(context).size.width * 0.9,
+                      height: MediaQuery.of(context).size.height * 0.8,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
