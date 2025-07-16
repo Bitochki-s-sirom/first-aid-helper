@@ -36,8 +36,6 @@ jobs:
           script: |
             cd /home/demonit/first-aid-helper
             git pull origin main
-            # docker build -t my-go-backend:latest ./backend
-            # docker build -t my-flutter-frontend:latest ./frontend
             export GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
             export DSN=${{ secrets.DSN }}
             docker compose up -d --build
