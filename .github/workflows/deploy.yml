@@ -37,5 +37,4 @@ jobs:
             cd /home/demonit/first-aid-helper
             git pull origin main
             export GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}"
-            export DSN="${{ secrets.DSN }}"
-            docker compose up -d --build
+            sudo docker compose up -d --build
