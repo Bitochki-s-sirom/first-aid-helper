@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../config/config.dart';
+import 'package:flutter/foundation.dart';
 
 class ApiService {
   static const String _baseUrl = Config.apiBaseUrl;
@@ -279,17 +280,16 @@ class ApiService {
         }
       }
 
-      if (photoFile != null) {
+      if (!kIsWeb && photoFile != null) {
         final bytes = await photoFile.readAsBytes();
         docToSend['file_data'] = base64Encode(bytes);
-      } else {
-        docToSend.remove('file_data');
       }
 
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/documents/add'),
         headers: {
           'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
         },
         body: jsonEncode(docToSend),
       );

@@ -568,22 +568,23 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
   }
 
   Future<void> _pickPhoto() async {
-  final picker = ImagePicker();
-  final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final picker = ImagePicker();
+    final picked =
+        await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
 
-  if (picked != null) {
-    if (kIsWeb) {
-      final bytes = await picked.readAsBytes();
-      setState(() {
-        _webImage = bytes;
-      });
-    } else {
-      setState(() {
-        _photoFile = File(picked.path);
-      });
+    if (picked != null) {
+      if (kIsWeb) {
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _webImage = bytes;
+        });
+      } else {
+        setState(() {
+          _photoFile = File(picked.path);
+        });
+      }
     }
   }
-}
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
@@ -634,37 +635,38 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
   }
 
   void _submit() async {
-  setState(() => _dateError = _selectedDate == null);
-  if (_formKey.currentState?.validate() != true || _selectedDate == null) return;
+    setState(() => _dateError = _selectedDate == null);
+    if (_formKey.currentState?.validate() != true || _selectedDate == null)
+      return;
 
-  final newDoc = {
-    'name': _nameController.text.trim(),
-    'type': _typeController.text.trim(),
-    'date': _selectedDate!.toIso8601String().substring(0, 10),
-    'doctor': _doctorController.text.trim(),
-  };
+    final newDoc = {
+      'name': _nameController.text.trim(),
+      'type': _typeController.text.trim(),
+      'date': _selectedDate!.toIso8601String().substring(0, 10),
+      'doctor': _doctorController.text.trim(),
+    };
 
-  try {
-    Uint8List? imageBytes;
+    try {
+      Uint8List? imageBytes;
 
-    if (kIsWeb) {
-      imageBytes = _webImage;
-    } else if (_photoFile != null) {
-      imageBytes = await _photoFile!.readAsBytes();
+      if (kIsWeb) {
+        imageBytes = _webImage;
+      } else if (_photoFile != null) {
+        imageBytes = await _photoFile!.readAsBytes();
+      }
+
+      if (imageBytes != null) {
+        newDoc['file_data'] = base64Encode(imageBytes);
+      }
+
+      widget.onAdd(newDoc);
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка обработки изображения: $e')),
+      );
     }
-
-    if (imageBytes != null) {
-      newDoc['file_data'] = base64Encode(imageBytes);
-    }
-
-    widget.onAdd(newDoc);
-    Navigator.pop(context);
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Ошибка обработки изображения: $e')),
-    );
   }
-}
 
   @override
   Widget build(BuildContext context) {

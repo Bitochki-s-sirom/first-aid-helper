@@ -19,11 +19,13 @@ Widget buildDocumentImage(
 
   try {
     if (fileData is String) {
+      // Handle base64 encoded image
       if (fileData.startsWith('data:image')) {
         final base64Data = fileData.split(',').last;
         return _buildImageFromBase64(base64Data, finalWidth, finalHeight, fit);
       }
 
+      // Assume it's raw base64 data
       if (fileData.length > 100) {
         return _buildImageFromBase64(fileData, finalWidth, finalHeight, fit);
       }
@@ -68,6 +70,9 @@ Widget _buildImageFromBase64(
       width: width,
       height: height,
       fit: fit,
+      errorBuilder: (context, error, stackTrace) {
+        return _buildPlaceholder(Icons.error_outline, width, height);
+      },
     );
   } catch (e) {
     if (kDebugMode) {
