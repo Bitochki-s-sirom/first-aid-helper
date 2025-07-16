@@ -19,31 +19,14 @@ class LocalStorage {
       String token, Map<String, dynamic> info) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_authTokenKey, token);
-    await prefs.setString(_name, info['name']);
-    await prefs.setString(_email, info['email']);
-    if (info['snils'] == null) {
-      await prefs.setString(_snils, '');
-    } else {
-      await prefs.setString(_snils, info['snils']);
-    }
 
-    if (info['passport'] == null) {
-      await prefs.setString(_passport, '');
-    } else {
-      await prefs.setString(_passport, info['passport']);
-    }
-
-    if (info['blood_type'] == null) {
-      await prefs.setString(_blood, '');
-    } else {
-      await prefs.setString(_blood, info['blood_type']);
-    }
-
-    if (info['chronic_cond'] == null) {
-      await prefs.setString(_chronic, '');
-    } else {
-      await prefs.setString(_chronic, info['chronic_cond']);
-    }
+    await prefs.setString(_name, info['name'] ?? '');
+    await prefs.setString(_email, info['email'] ?? '');
+    await prefs.setString(_snils, info['snils'] ?? '');
+    await prefs.setString(_passport, info['passport'] ?? '');
+    await prefs.setString(_blood, info['blood_type'] ?? info['blood'] ?? '');
+    await prefs.setString(
+        _chronic, info['chronic_cond'] ?? info['chronic'] ?? '');
   }
 
   static Future<Map<String, dynamic>?> getAuthData() async {
@@ -75,7 +58,6 @@ class LocalStorage {
     await prefs.remove(_chronic);
   }
 
-  // В классе LocalStorage измените метод updateAuthData:
   static Future<bool> updateAuthData(Map<String, dynamic> newData) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -86,34 +68,35 @@ class LocalStorage {
         return false;
       }
 
-      // Сначала сохраняем локально
-      if (newData['blood_type'] != null) {
-        await prefs.setString(_blood, newData['blood_type']);
-      }
-      if (newData['passport'] != null) {
-        await prefs.setString(_passport, newData['passport']);
-      }
-      if (newData['snils'] != null) {
-        await prefs.setString(_snils, newData['snils']);
-      }
-      if (newData['chronic_cond'] != null) {
-        await prefs.setString(_chronic, newData['chronic_cond']);
-      }
+      // Подготовка данных для сервера
+      final serverData = {
+        if (newData['blood_type'] != null) 'blood_type': newData['blood_type'],
+        if (newData['passport'] != null) 'passport': newData['passport'],
+        if (newData['snils'] != null) 'snils': newData['snils'],
+        if (newData['chronic_cond'] != null)
+          'chronic_cond': newData['chronic_cond'],
+      };
 
-      // Затем отправляем на сервер
-      print('Sending update to server: $newData');
+      // Отправка на сервер
+      print('Sending update to server: $serverData');
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/me'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode(newData),
+        body: jsonEncode(serverData),
       );
 
       print('Server response: ${response.statusCode} ${response.body}');
 
-      return response.statusCode == 200;
+      if (response.statusCode == 200) {
+        // Если сервер подтвердил успешное обновление, сохраняем локально
+        final updatedData = jsonDecode(response.body);
+        await saveAuthData(token, updatedData);
+        return true;
+      }
+      return false;
     } catch (e) {
       print('Error updating auth data: $e');
       return false;

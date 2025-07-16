@@ -26,11 +26,20 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/login'),
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'password': password}),
       );
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final authData = jsonDecode(response.body);
+        final token = authData['token'];
+
+        final userInfo = await getInfo(token: token);
+
+        return {
+          'token': token,
+          ...userInfo,
+        };
       } else {
         throw Exception('Failed to login: ${response.statusCode}');
       }

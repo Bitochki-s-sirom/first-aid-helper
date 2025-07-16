@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/squareavatar.dart';
 import '../colors/colors.dart';
 import '../services/local_storage.dart';
+import '../services/api_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -70,27 +71,47 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _loadUserData() async {
     try {
+      // Сначала пробуем получить данные из локального хранилища
       final authData = await LocalStorage.getAuthData();
-      if (mounted) {
+
+      // Затем обновляем данные с сервера
+      if (authData != null && authData['token'] != null) {
+        try {
+          final serverData = await ApiService.getInfo(token: authData['token']);
+
+          // Обновляем локальные данные
+          await LocalStorage.saveAuthData(authData['token'], serverData);
+
+          if (mounted) {
+            setState(() {
+              firstName = serverData['name'] ?? authData['name'] ?? 'Гость';
+              email = serverData['email'] ?? authData['email'] ?? 'Почта';
+              blood = serverData['blood_type'] ??
+                  authData['blood_type'] ??
+                  'не указан';
+              chronic = serverData['chronic_cond'] ??
+                  authData['chronic_cond'] ??
+                  'не указан';
+              pass =
+                  serverData['passport'] ?? authData['passport'] ?? 'не указан';
+              snils = serverData['snils'] ?? authData['snils'] ?? 'не указан';
+            });
+          }
+          return;
+        } catch (e) {
+          print('Error updating from server: $e');
+        }
+      }
+
+      // Если не удалось получить с сервера, используем локальные данные
+      if (mounted && authData != null) {
         setState(() {
-          firstName = authData?['name'] ?? 'Гость';
-          email = authData?['email'] ?? 'Гость';
-          blood = authData?['blood_type'] ?? 'не указан';
-          chronic = authData?['chronic_cond'] ?? 'не указан';
-          pass = authData?['passport'] ?? 'не указан';
-          snils = authData?['snils'] ?? 'не указан';
-
-          // Обновляем контроллеры
-          _bloodController.text = blood;
-          _passController.text = pass;
-          _snilsController.text = snils;
-          _chronicController.text = chronic;
-
-          // Обновляем оригинальные значения
-          _originalBlood = blood;
-          _originalPass = pass;
-          _originalSnils = snils;
-          _originalChronic = chronic;
+          firstName = authData['name'] ?? 'Гость';
+          email = authData['email'] ?? 'Почта';
+          blood = authData['blood_type'] ?? 'не указан';
+          chronic = authData['chronic_cond'] ?? 'не указан';
+          pass = authData['passport'] ?? 'не указан';
+          snils = authData['snils'] ?? 'не указан';
         });
       }
     } catch (e) {
