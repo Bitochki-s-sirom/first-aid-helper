@@ -1,0 +1,19 @@
+services:
+  backend:
+    image: go-backend:latest
+    build: ./backend
+    ports:
+      - "8080:8080"
+    container_name: backend
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DSN=${DSN}
+
+  frontend:
+    image: flutter-frontend:latest
+    build: ./frontend
+    ports:
+      - "80:80"
+    container_name: frontend
+    depends_on:
+      - backend

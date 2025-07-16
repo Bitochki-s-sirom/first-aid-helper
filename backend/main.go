@@ -8,18 +8,17 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 )
 
 func main() {
 	// Initialize logger with timestamp and file info
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	// Load env variables with API key for GemiAI and dsn for postgres
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Error loading .env file")
-	}
+	// // Load env variables with API key for GemiAI and dsn for postgres
+	// err := godotenv.Load()
+	// if err != nil {
+	// 	log.Fatalf("Error loading .env file")
+	// }
 
 	// Get variables
 	apiKey := os.Getenv("GEMINI_API_KEY")
