@@ -13,12 +13,12 @@ type Message struct {
 
 // MessageGorm handles database operations related to Message using GORM.
 type MessageGorm struct {
-	db *gorm.DB // Database connection instance
+	DB *gorm.DB // Database connection instance
 }
 
 // NewMessageGorm initializes a new MessageGorm service.
 func NewMessageGorm(db *gorm.DB) *MessageGorm {
-	return &MessageGorm{db: db}
+	return &MessageGorm{DB: db}
 }
 
 // AddMessage creates a new message record in the database.
@@ -28,14 +28,14 @@ func (mg *MessageGorm) AddMessage(chatID, sender uint, text string) (*Message, e
 		Sender: sender,
 		Text:   text,
 	}
-	err := mg.db.Create(message).Error // Inserts the message into the DB
+	err := mg.DB.Create(message).Error // Inserts the message into the DB
 	return message, err
 }
 
 // GetMessages retrieves all messages for a given chat ID, ordered by timestamp (oldest to newest).
 func (mg *MessageGorm) GetMessages(chatID uint) ([]Message, error) {
 	var messages []Message
-	err := mg.db.
+	err := mg.DB.
 		Where("chat_id = ?", chatID).
 		Order("timestamp asc").
 		Find(&messages).Error
@@ -44,7 +44,7 @@ func (mg *MessageGorm) GetMessages(chatID uint) ([]Message, error) {
 
 // UpdateMessage updates the text of an existing message by its ID.
 func (mg *MessageGorm) UpdateMessage(messageID uint, newText string) error {
-	return mg.db.
+	return mg.DB.
 		Model(&Message{}).
 		Where("id = ?", messageID).
 		Update("text", newText).
@@ -53,5 +53,5 @@ func (mg *MessageGorm) UpdateMessage(messageID uint, newText string) error {
 
 // DeleteMessage removes a message from the database using its ID.
 func (mg *MessageGorm) DeleteMessage(messageID uint) error {
-	return mg.db.Delete(&Message{}, messageID).Error
+	return mg.DB.Delete(&Message{}, messageID).Error
 }

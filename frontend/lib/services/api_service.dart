@@ -1,8 +1,21 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class ApiService {
   static const String _baseUrl = 'http://localhost:8080';
+
+  static Future<bool> validateToken(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/auth/me'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
 
   static Future<Map<String, dynamic>> login({
     required String email,
@@ -11,10 +24,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/login'),
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
+        body: jsonEncode({'email': email, 'password': password}),
       );
 
       if (response.statusCode == 200) {
@@ -52,9 +62,7 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> getInfo({
-    required String token,
-  }) async {
+  static Future<Map<String, dynamic>> getInfo({required String token}) async {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl/auth/me'),
@@ -71,8 +79,9 @@ class ApiService {
     }
   }
 
-  static Future<List<Map<String, dynamic>>> getDrugs(
-      {required String token}) async {
+  static Future<List<Map<String, dynamic>>> getDrugs({
+    required String token,
+  }) async {
     final response = await http.get(
       Uri.parse('$_baseUrl/auth/drugs'),
       headers: {'Authorization': 'Bearer $token'},
@@ -87,15 +96,18 @@ class ApiService {
         return data.cast<Map<String, dynamic>>();
       }
       throw Exception(
-          'Ожидался массив или объект с полем data, а пришло: $data');
+        'Ожидался массив или объект с полем data, а пришло: $data',
+      );
     } else {
       print('Ошибка сервера: ${response.body}');
       throw Exception('Failed to get drugs: ${response.statusCode}');
     }
   }
 
-  static Future<bool> addDrug(
-      {required String token, required Map<String, dynamic> drug}) async {
+  static Future<bool> addDrug({
+    required String token,
+    required Map<String, dynamic> drug,
+  }) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/auth/drugs/add'),
       headers: {
@@ -110,19 +122,20 @@ class ApiService {
     return response.statusCode == 200;
   }
 
-  static Future<bool> removeDrug(
-      {required String token, required int id}) async {
+  static Future<bool> removeDrug({
+    required String token,
+    required int id,
+  }) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/auth/drugs/remove/$id'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Authorization': 'Bearer $token'},
     );
     return response.statusCode == 200;
   }
 
-  static Future<List<Map<String, dynamic>>> getChats(
-      {required String token}) async {
+  static Future<List<Map<String, dynamic>>> getChats({
+    required String token,
+  }) async {
     final response = await http.get(
       Uri.parse('$_baseUrl/auth/chats'),
       headers: {'Authorization': 'Bearer $token'},
@@ -201,59 +214,118 @@ class ApiService {
     final stream = response.stream
         .transform(utf8.decoder)
         .transform(const LineSplitter())
-        .where((line) =>
-            line.startsWith('data: ') || line.startsWith('event: done'))
+        .where(
+          (line) => line.startsWith('data: ') || line.startsWith('event: done'),
+        )
         .map((line) {
       if (line.startsWith('event: done') ||
           line.trim() == 'data: [DONE]' ||
           line.trim() == 'data: completed') {
         return '[DONE]';
       }
-      return line.substring(6).trim();
+      return line.substring(6);
     });
 
     yield* stream;
   }
 
-  static Future<List<Map<String, dynamic>>> getDocuments(
-      {required String token}) async {
-    final response = await http.get(
-      Uri.parse('$_baseUrl/auth/documents'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data is List) {
-        return data.cast<Map<String, dynamic>>();
+  static Future<List<Map<String, dynamic>>> getDocuments({
+    required String token,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/auth/documents'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        // Исправление: обработка структуры ответа сервера
+        if (data is Map && data.containsKey('data') && data['data'] is List) {
+          return (data['data'] as List).cast<Map<String, dynamic>>();
+        }
+        // Если ответ не содержит поле 'data', но является массивом
+        else if (data is List) {
+          return data.cast<Map<String, dynamic>>();
+        }
+
+        throw Exception(
+            'Неверный формат ответа сервера. Ожидался объект с полем data или массив документов. Получено: $data');
+      } else {
+        throw Exception(
+            'Failed to get documents: ${response.statusCode} ${response.body}');
       }
-      throw Exception('Ожидался массив документов');
-    } else {
-      throw Exception('Failed to get documents: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Ошибка получения документов: $e');
     }
   }
 
-  static Future<bool> addDocument(
-      {required String token, required Map<String, dynamic> document}) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/auth/documents/add'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode(document),
-    );
-    return response.statusCode == 200;
+  static Future<bool> addDocumentWithPhoto({
+    required String token,
+    required Map<String, dynamic> document,
+    File? photoFile,
+  }) async {
+    try {
+      final docToSend = Map<String, dynamic>.from(document);
+
+      if (docToSend['date'] != null && docToSend['date'] is String) {
+        final dateStr = docToSend['date'] as String;
+        if (dateStr.isNotEmpty) {
+          try {
+            final date = DateTime.parse(dateStr);
+            docToSend['date'] = date.toUtc().toIso8601String();
+          } catch (e) {
+            print('Ошибка преобразования даты: $e');
+          }
+        }
+      }
+
+      if (photoFile != null) {
+        final bytes = await photoFile.readAsBytes();
+        docToSend['file_data'] = base64Encode(bytes);
+      } else {
+        docToSend.remove('file_data');
+      }
+
+      // Создаем запрос
+      final response = await http.post(
+        Uri.parse('$_baseUrl/auth/documents/add'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(docToSend),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        throw Exception(
+            'Server error: ${response.statusCode} ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Ошибка при добавлении документа: $e');
+    }
   }
 
-  static Future<bool> removeDocument(
-      {required String token, required int id}) async {
-    // Предполагается, что удаление реализовано как /auth/documents/remove/{id}
-    final response = await http.post(
-      Uri.parse('$_baseUrl/auth/documents/remove/$id'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
-    return response.statusCode == 200;
+  static Future<bool> removeDocument({
+    required String token,
+    required dynamic id,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/auth/documents/remove/$id'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        throw Exception(
+            'Server error: ${response.statusCode} ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Ошибка при удалении документа: $e');
+    }
   }
 }

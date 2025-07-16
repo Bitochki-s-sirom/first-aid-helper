@@ -25,7 +25,7 @@ type ChatService struct {
 // @Security BearerAuth
 func (cs *ChatService) NewChat(w http.ResponseWriter, r *http.Request) {
 	// Extract user ID from the request context (populated by authentication middleware)
-	userID, err := GetUserFromContext(r.Context())
+	userID, _, err := GetUserFromContext(r.Context(), cs.DB.DB)
 	if err != nil {
 		log.Printf("Error getting user in NewChat: %v", err)
 		WriteError(w, 500, err.Error())
@@ -60,7 +60,7 @@ func (cs *ChatService) NewChat(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 func (cs *ChatService) GetUsersChats(w http.ResponseWriter, r *http.Request) {
 	// Get authenticated user ID from context
-	userID, err := GetUserFromContext(r.Context())
+	userID, _, err := GetUserFromContext(r.Context(), cs.DB.DB)
 	if err != nil {
 		log.Printf("Error getting user in NewChat: %v", err)
 		WriteError(w, 500, err.Error())

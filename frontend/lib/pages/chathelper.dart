@@ -78,14 +78,12 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
     if (authData == null) return;
     _token = authData['token'];
 
-    // 1. Загружаем локальные чаты (для titles)
     final localChats = await LocalStorage.getChats();
     final Map<int, String> localTitles = {
       for (final c in localChats.map((json) => ChatSession.fromJson(json)))
         c.id: c.title,
     };
 
-    // 2. Загружаем чаты с сервера
     try {
       final chats = await ApiService.getChats(token: _token!);
       _chats = [];
@@ -93,7 +91,7 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
         final id =
             chat['id'] is int ? chat['id'] : int.parse(chat['id'].toString());
         final title = localTitles[id] ?? chat['title'] ?? 'Без названия';
-        final messages = await _loadMessages(id); // <-- всегда берём с сервера!
+        final messages = await _loadMessages(id);
         _chats.add(ChatSession(id: id, title: title, messages: messages));
       }
 
@@ -105,17 +103,17 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
       setState(() {
         _selectedChatId = _chats.isNotEmpty ? _chats.first.id : null;
       });
-      await _saveChatsToLocal(); // Сохраняем свежие данные
+      await _saveChatsToLocal();
     } catch (e) {
-      // Если сервер не отвечает, fallback на локальные чаты
       if (localChats.isNotEmpty) {
         _chats = localChats.map((json) => ChatSession.fromJson(json)).toList();
         setState(() {
           _selectedChatId = _chats.isNotEmpty ? _chats.first.id : null;
         });
       }
+      print('$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка загрузки чатов: $e')),
+        SnackBar(content: Text('Ошибка загрузки чатов')),
       );
     }
   }
@@ -158,8 +156,9 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
       await _saveChatsToLocal();
     } catch (e) {
       setState(() => _isLoading = false);
+      print('$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка создания чата: $e')),
+        SnackBar(content: Text('Ошибка создания чата')),
       );
     }
   }
@@ -208,15 +207,17 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
           setState(() => aiMessage.text += chunk);
         }
       }, onError: (e) {
+        print('$e');
         setState(() {
           _isLoading = false;
-          aiMessage.text = 'Error: $e';
+          aiMessage.text = 'Server error';
         });
       });
     } catch (e) {
       setState(() => _isLoading = false);
+      print('$e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('Error sending message')),
       );
     }
   }
@@ -357,7 +358,6 @@ class _ChatHelperPageState extends State<ChatHelperPage> {
   }
 }
 
-/// Виджет для плавной анимации и поддержки markdown у сообщений
 class ChatMessageWidget extends StatelessWidget {
   final String text;
   final bool isUser;

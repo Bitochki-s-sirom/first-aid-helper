@@ -44,7 +44,8 @@ class _MedicationsRunoutPageState extends State<MedicationsRunoutPage> {
         medications = medsLocal;
         filteredMedications = List.from(medications);
       });
-      showErrorSnackBar(context, 'Ошибка загрузки лекарств: $e');
+      print('$e');
+      showErrorSnackBar(context, 'Ошибка загрузки лекарств');
     }
   }
 
@@ -65,7 +66,8 @@ class _MedicationsRunoutPageState extends State<MedicationsRunoutPage> {
         showErrorSnackBar(context, 'Не удалось добавить лекарство');
       }
     } catch (e) {
-      showErrorSnackBar(context, 'Ошибка при добавлении: $e');
+      print('$e');
+      showErrorSnackBar(context, 'Ошибка при добавлении');
     }
   }
 
@@ -84,7 +86,8 @@ class _MedicationsRunoutPageState extends State<MedicationsRunoutPage> {
         showErrorSnackBar(context, 'Не удалось удалить лекарство');
       }
     } catch (e) {
-      showErrorSnackBar(context, 'Ошибка при удалении: $e');
+      print('$e');
+      showErrorSnackBar(context, 'Ошибка при удалении');
     }
   }
 
@@ -157,6 +160,14 @@ class _MedicationsRunoutPageState extends State<MedicationsRunoutPage> {
                     _filterMedications(_searchController.text);
                   },
                   activeColor: kSidebarActiveColor,
+                  fillColor: MaterialStateProperty.resolveWith<Color>(
+                    (Set<MaterialState> states) {
+                      if (states.contains(MaterialState.selected)) {
+                        return kSidebarActiveColor;
+                      }
+                      return kSidebarActiveColor;
+                    },
+                  ),
                 ),
               ),
               ListTile(
@@ -176,6 +187,14 @@ class _MedicationsRunoutPageState extends State<MedicationsRunoutPage> {
                     _filterMedications(_searchController.text);
                   },
                   activeColor: kSidebarActiveColor,
+                  fillColor: MaterialStateProperty.resolveWith<Color>(
+                    (Set<MaterialState> states) {
+                      if (states.contains(MaterialState.selected)) {
+                        return kSidebarActiveColor;
+                      }
+                      return kSidebarActiveColor;
+                    },
+                  ),
                 ),
               ),
             ],

@@ -1,9 +1,12 @@
 import 'dart:io';
+import 'dart:typed_data';
+import '../widgets/docimage.dart';
 import 'package:flutter/material.dart';
 import '../colors/colors.dart';
 import '../services/local_storage.dart';
 import '../services/api_service.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 class DocumentsPage extends StatefulWidget {
   const DocumentsPage({super.key});
@@ -19,6 +22,7 @@ class _DocumentsPageState extends State<DocumentsPage> {
   String _selectedDoctor = 'Все';
   late String _token = '';
   Set<String> _allDoctors = {};
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -27,81 +31,107 @@ class _DocumentsPageState extends State<DocumentsPage> {
   }
 
   Future<void> _loadTokenAndDocuments() async {
-    final authData = await LocalStorage.getAuthData();
-    if (authData == null) return;
-    _token = authData['token'];
+    setState(() => _isLoading = true);
 
     try {
-      final docsFromServer = await ApiService.getDocuments(token: _token);
-      setState(() {
-        documents = docsFromServer;
-        _allDoctors =
-            documents.map((m) => (m['doctor'] ?? '').toString()).toSet();
-        filteredDocuments = List.from(documents);
-      });
-      await LocalStorage.saveDocuments(documents);
+      final authData = await LocalStorage.getAuthData();
+      if (authData == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      _token = authData['token'];
+
+      try {
+        final docsFromServer = await ApiService.getDocuments(token: _token);
+        setState(() {
+          documents = docsFromServer;
+          _allDoctors = documents
+              .map((m) => (m['doctor'] ?? 'Без врача').toString())
+              .toSet();
+          filteredDocuments = List.from(documents);
+        });
+        await LocalStorage.saveDocuments(documents);
+      } catch (e) {
+        debugPrint('Ошибка загрузки документов с сервера: $e');
+
+        final docsLocal = await LocalStorage.getDocuments();
+        setState(() {
+          documents = docsLocal;
+          _allDoctors = documents
+              .map((m) => (m['doctor'] ?? 'Без врача').toString())
+              .toSet();
+          filteredDocuments = List.from(documents);
+        });
+
+        showErrorSnackBar(context,
+            'Не удалось загрузить актуальные документы. Показаны сохранённые данные.');
+      }
     } catch (e) {
-      final docsLocal = await LocalStorage.getDocuments();
-      setState(() {
-        documents = docsLocal;
-        _allDoctors =
-            documents.map((m) => (m['doctor'] ?? '').toString()).toSet();
-        filteredDocuments = List.from(documents);
-      });
-      showErrorSnackBar(context, 'Ошибка загрузки записей: $e');
+      debugPrint('Общая ошибка инициализации: $e');
+      showErrorSnackBar(context, 'Ошибка инициализации документов');
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
   Future<void> _addDocument(Map<String, dynamic> newDoc) async {
     if (_token == '') return;
+
     try {
-      final success =
-          await ApiService.addDocument(token: _token, document: newDoc);
+      final photoFile = newDoc['photoFile'] as File?;
+      final docData = Map<String, dynamic>.from(newDoc)..remove('photoFile');
+
+      if (!docData.containsKey('date') ||
+          docData['date'] == null ||
+          docData['date'].isEmpty) {
+        docData['date'] = DateTime.now().toIso8601String().substring(0, 10);
+      }
+
+      final success = await ApiService.addDocumentWithPhoto(
+        token: _token,
+        document: docData,
+        photoFile: photoFile,
+      );
+
       if (success) {
-        final docsFromServer = await ApiService.getDocuments(token: _token);
-        setState(() {
-          documents = docsFromServer;
-          _allDoctors = _allDoctors =
-              documents.map((m) => (m['doctor'] ?? '').toString()).toSet();
-          _filterDocuments(_searchController.text);
-        });
-        await LocalStorage.saveDocuments(documents);
+        await _loadTokenAndDocuments();
+        showSuccessSnackBar(context, 'Документ успешно добавлен');
       } else {
-        showErrorSnackBar(context, 'Не удалось добавить запись');
+        showErrorSnackBar(context, 'Не удалось добавить документ');
       }
     } catch (e) {
-      showErrorSnackBar(context, 'Ошибка при добавлении: $e');
+      print('$e');
+      showErrorSnackBar(context, 'Ошибка при добавлении');
     }
   }
 
-  Future<void> _removeDocument(int id) async {
+  Future<void> _removeDocument(dynamic id) async {
     if (_token == '') return;
+
     try {
       final success = await ApiService.removeDocument(token: _token, id: id);
       if (success) {
-        final docsFromServer = await ApiService.getDocuments(token: _token);
         setState(() {
-          documents = docsFromServer;
-          _allDoctors =
-              documents.map((m) => (m['doctor'] ?? '').toString()).toSet();
-          _filterDocuments(_searchController.text);
+          documents.removeWhere((doc) => doc['id'] == id);
+          filteredDocuments.removeWhere((doc) => doc['id'] == id);
         });
         await LocalStorage.saveDocuments(documents);
+        showSuccessSnackBar(context, 'Документ удален');
       } else {
-        showErrorSnackBar(context, 'Не удалось удалить запись');
+        showErrorSnackBar(context, 'Не удалось удалить документ');
       }
     } catch (e) {
-      showErrorSnackBar(context, 'Ошибка при удалении: $e');
+      print('$e');
+      showErrorSnackBar(context, 'Ошибка при удалении');
     }
   }
 
   void _filterDocuments(String query) {
     setState(() {
       filteredDocuments = documents.where((doc) {
-        final matchesName = doc['shortDescription']
-            .toString()
-            .toLowerCase()
-            .contains(query.toLowerCase());
+        final matchesName =
+            doc['name'].toString().toLowerCase().contains(query.toLowerCase());
         final matchesDoctor = _selectedDoctor == 'Все' ||
             (doc['doctor'] ?? '') == _selectedDoctor;
         return matchesName && matchesDoctor;
@@ -114,6 +144,15 @@ class _DocumentsPageState extends State<DocumentsPage> {
       content: Text(message),
       backgroundColor: Colors.redAccent,
       duration: const Duration(seconds: 3),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+  void showSuccessSnackBar(BuildContext context, String message) {
+    final snackBar = SnackBar(
+      content: Text(message),
+      backgroundColor: Colors.green,
+      duration: const Duration(seconds: 2),
     );
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
@@ -160,6 +199,14 @@ class _DocumentsPageState extends State<DocumentsPage> {
                         _filterDocuments(_searchController.text);
                       },
                       activeColor: kSidebarActiveColor,
+                      fillColor: MaterialStateProperty.resolveWith<Color>(
+                        (Set<MaterialState> states) {
+                          if (states.contains(MaterialState.selected)) {
+                            return kSidebarActiveColor;
+                          }
+                          return kSidebarActiveColor;
+                        },
+                      ),
                     ),
                   )),
             ],
@@ -181,52 +228,46 @@ class _DocumentsPageState extends State<DocumentsPage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Stack(
-            children: [
-              Padding(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+            ),
+            child: SingleChildScrollView(
+              child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 24),
-                    if (doc['photo'] != null &&
-                        doc['photo'].toString().isNotEmpty)
-                      Center(
-                        child: Image.file(
-                          File(doc['photo']),
-                          width: 180,
-                          height: 180,
-                          fit: BoxFit.cover,
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height * 0.4,
+                          maxWidth: MediaQuery.of(context).size.width * 0.8,
                         ),
+                        child: buildDocumentImage(doc['file_data']),
                       ),
-                    const SizedBox(height: 15),
+                    ),
+                    const SizedBox(height: 25),
                     if (doc['doctor'] != null &&
                         doc['doctor'].toString().isNotEmpty)
-                      Text(
-                        'Врач: ${doc['doctor']}',
-                        style: const TextStyle(
-                            fontSize: 16, color: kSidebarActiveColor),
-                      ),
-                    const SizedBox(height: 10),
-                    _buildDetailRow(
-                        'Краткое описание:', doc['shortDescription']),
-                    _buildDetailRow('Полное описание:', doc['fullDescription']),
+                      _buildDetailRow('Врач:', doc['doctor']),
+                    if (doc['type'] != null &&
+                        doc['type'].toString().isNotEmpty)
+                      _buildDetailRow('Описание:', doc['type']),
+                    if (doc['date'] != null &&
+                        doc['date'].toString().isNotEmpty)
+                      _buildDetailRow(
+                          'Дата:', formatDate(doc['date'].toString())),
+                    if (doc['name'] != null &&
+                        doc['name'].toString().isNotEmpty)
+                      _buildDetailRow('Название:', doc['name']),
                     const SizedBox(height: 20),
                   ],
                 ),
               ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: IconButton(
-                  icon: const Icon(Icons.close,
-                      size: 28, color: kSidebarActiveColor),
-                  onPressed: () => Navigator.pop(context),
-                  tooltip: 'Закрыть',
-                ),
-              ),
-            ],
+            ),
           ),
         );
       },
@@ -244,7 +285,7 @@ class _DocumentsPageState extends State<DocumentsPage> {
 
   Widget _buildDetailRow(String title, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -260,11 +301,22 @@ class _DocumentsPageState extends State<DocumentsPage> {
             child: Text(
               value,
               style: const TextStyle(fontSize: 16, color: kSidebarActiveColor),
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
       ),
     );
+  }
+
+  String formatDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      return DateFormat('yyyy-MM-dd').format(date);
+    } catch (_) {
+      return dateStr;
+    }
   }
 
   @override
@@ -334,12 +386,23 @@ class _DocumentsPageState extends State<DocumentsPage> {
               ],
             ),
           ),
-          if (filteredDocuments.isEmpty)
+          if (_isLoading)
             const Expanded(
               child: Center(
+                child: CircularProgressIndicator(
+                  color: kSidebarActiveColor,
+                ),
+              ),
+            )
+          else if (filteredDocuments.isEmpty)
+            Expanded(
+              child: Center(
                 child: Text(
-                  'Записи не найдены',
-                  style: TextStyle(color: kSidebarActiveColor),
+                  'Документы не найдены',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: kSidebarActiveColor,
+                  ),
                 ),
               ),
             )
@@ -347,10 +410,14 @@ class _DocumentsPageState extends State<DocumentsPage> {
             Expanded(
               child: GridView.builder(
                 padding: const EdgeInsets.all(16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 6,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: MediaQuery.of(context).size.width > 1200
+                      ? 6
+                      : MediaQuery.of(context).size.width > 800
+                          ? 4
+                          : 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
                   childAspectRatio: 1,
                 ),
                 itemCount: filteredDocuments.length,
@@ -370,89 +437,96 @@ class _DocumentsPageState extends State<DocumentsPage> {
     return StatefulBuilder(
       builder: (context, setState) {
         return MouseRegion(
-          cursor: SystemMouseCursors.click,
           onEnter: (_) => setState(() => isHovered = true),
           onExit: (_) => setState(() => isHovered = false),
-          child: TweenAnimationBuilder(
+          child: AnimatedScale(
             duration: const Duration(milliseconds: 100),
-            tween: Tween(begin: 1.0, end: isHovered ? 1.05 : 1.0),
-            builder: (context, value, child) {
-              return Transform.scale(
-                scale: value,
-                child: child,
-              );
-            },
+            scale: isHovered ? 1.05 : 1.0,
             child: GestureDetector(
               onTap: () => _showDocumentDetails(doc),
-              child: Stack(
-                children: [
-                  Card(
-                    color: Theme.of(context).brightness == Brightness.light
-                        ? kSidebarIconColor
-                        : const Color.fromARGB(179, 81, 81, 81),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                        color: isHovered
-                            ? kSidebarActiveColor
-                            : kSidebarActiveColor.withOpacity(0.3),
-                        width: isHovered ? 2 : 1,
-                      ),
-                    ),
-                    elevation: isHovered ? 8 : 2,
-                    child: Padding(
+              child: Card(
+                elevation: isHovered ? 8 : 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: isHovered
+                        ? kSidebarActiveColor
+                        : kSidebarActiveColor.withOpacity(0.3),
+                    width: isHovered ? 2 : 1,
+                  ),
+                ),
+                color: Theme.of(context).brightness == Brightness.light
+                    ? kSidebarIconColor
+                    : const Color.fromARGB(179, 81, 81, 81),
+                child: Stack(
+                  children: [
+                    Padding(
                       padding: const EdgeInsets.all(12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (doc['photo'] != null &&
-                              doc['photo'].toString().isNotEmpty)
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.file(
-                                File(doc['photo']),
-                                width: 42,
-                                height: 42,
-                                fit: BoxFit.cover,
+                          Center(
+                            child: Container(
+                              height: 110,
+                              constraints: BoxConstraints(
+                                maxWidth:
+                                    MediaQuery.of(context).size.width * 0.3,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                color: Colors.grey[200],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: buildDocumentImage(doc['file_data']),
                               ),
                             ),
-                          const SizedBox(height: 4),
-                          if (doc['doctor'] != null &&
-                              doc['doctor'].toString().isNotEmpty)
-                            Text(
-                              doc['doctor'],
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          const SizedBox(height: 2),
+                          ),
+                          const SizedBox(height: 8),
                           Text(
-                            doc['shortDescription'] ?? '',
+                            doc['name'] ?? 'Без названия',
                             style: const TextStyle(
-                                fontSize: 11, color: kSidebarActiveColor),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: kSidebarActiveColor,
+                            ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const Spacer(),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(Icons.person_outline,
+                                  size: 14, color: Colors.grey[600]),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  doc['doctor'] ?? 'Без врача',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[700],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
-                  ),
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: IconButton(
-                      icon: const Icon(Icons.delete,
-                          color: kSidebarActiveColor, size: 22),
-                      tooltip: 'Удалить',
-                      onPressed: () => _removeDocument(doc['id']),
-                      splashRadius: 15,
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: IconButton(
+                        icon: const Icon(Icons.delete,
+                            color: kSidebarActiveColor, size: 22),
+                        onPressed: () => _removeDocument(doc['id']),
+                        tooltip: 'Удалить документ',
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -473,18 +547,19 @@ class AddDocumentDialog extends StatefulWidget {
 
 class _AddDocumentDialogState extends State<AddDocumentDialog> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _typeController = TextEditingController();
   final _doctorController = TextEditingController();
-  final _shortDescController = TextEditingController();
-  final _fullDescController = TextEditingController();
-  final _photoNameController = TextEditingController();
   File? _photoFile;
+
+  DateTime? _selectedDate;
+  bool _dateError = false;
 
   @override
   void dispose() {
+    _nameController.dispose();
+    _typeController.dispose();
     _doctorController.dispose();
-    _shortDescController.dispose();
-    _fullDescController.dispose();
-    _photoNameController.dispose();
     super.dispose();
   }
 
@@ -495,23 +570,72 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
     if (picked != null) {
       setState(() {
         _photoFile = File(picked.path);
-        _photoNameController.text = picked.name;
+      });
+    }
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365 * 10)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            inputDecorationTheme: InputDecorationTheme(),
+            textTheme: TextTheme(
+                bodySmall: TextStyle(color: kSidebarActiveColor),
+                displayMedium: TextStyle(fontSize: 16),
+                titleMedium: TextStyle(color: kSidebarActiveColor)),
+            colorScheme: ColorScheme.light(
+                primary: Theme.of(context).brightness == Brightness.light
+                    ? kDarkSidebarIconColor
+                    : kSidebarColor,
+                onPrimary: kSidebarActiveColor,
+                onSurface: kSidebarActiveColor,
+                surface: Theme.of(context).brightness == Brightness.light
+                    ? kSidebarIconColor
+                    : kDarkSidebarIconColor),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: kSidebarActiveColor,
+              ),
+            ),
+            dialogTheme: DialogThemeData(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+        _dateError = false;
       });
     }
   }
 
   void _submit() {
-    if (_formKey.currentState?.validate() != true) {
+    setState(() {
+      _dateError = _selectedDate == null;
+    });
+
+    if (_formKey.currentState?.validate() != true || _selectedDate == null) {
       return;
     }
 
     widget.onAdd({
-      'id': DateTime.now().millisecondsSinceEpoch,
+      'name': _nameController.text.trim(),
+      'type': _typeController.text.trim(),
+      'date': _selectedDate!.toIso8601String().substring(0, 10),
       'doctor': _doctorController.text.trim(),
-      'shortDescription': _shortDescController.text.trim(),
-      'fullDescription': _fullDescController.text.trim(),
-      'photo': _photoFile?.path ?? '',
-      'photoFileName': _photoNameController.text.trim(),
+      'photoFile': _photoFile,
     });
     Navigator.pop(context);
   }
@@ -529,13 +653,115 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Добавить запись',
+              Text('Добавить документ',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: Theme.of(context).brightness == Brightness.light
                           ? kSidebarIconColor.withOpacity(0.5)
                           : kDarkSidebarIconColor.withOpacity(0.5),
                       fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
+              TextFormField(
+                controller: _nameController,
+                cursorColor: accent,
+                decoration: InputDecoration(
+                  labelText: 'Название*',
+                  labelStyle: TextStyle(
+                      color: accent.withOpacity(0.5),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22),
+                  enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: accent, width: 1.5)),
+                  floatingLabelStyle: TextStyle(
+                    color: accent,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: accent,
+                      width: 4.0,
+                    ),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: accent, width: 1),
+                  ),
+                  filled: false,
+                ),
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Укажите название' : null,
+              ),
+              const SizedBox(height: 15),
+              TextFormField(
+                controller: _typeController,
+                cursorColor: accent,
+                decoration: InputDecoration(
+                  labelText: 'Описание*',
+                  labelStyle: TextStyle(
+                      color: accent.withOpacity(0.5),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22),
+                  enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: accent, width: 1.5)),
+                  floatingLabelStyle: TextStyle(
+                    color: accent,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: accent,
+                      width: 4.0,
+                    ),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: accent, width: 1),
+                  ),
+                  filled: false,
+                ),
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Укажите описание' : null,
+              ),
+              const SizedBox(height: 15),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _selectedDate == null
+                              ? 'Дата не выбрана'
+                              : 'Дата: ${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}',
+                          style: TextStyle(
+                            color: _dateError ? Colors.red : null,
+                          ),
+                        ),
+                        if (_dateError)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              'Пожалуйста, выберите дату',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _pickDate,
+                    child:
+                        Text('Выбрать дату', style: TextStyle(color: accent)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 15),
               TextFormField(
                 controller: _doctorController,
                 cursorColor: accent,
@@ -565,124 +791,36 @@ class _AddDocumentDialogState extends State<AddDocumentDialog> {
                   ),
                   filled: false,
                 ),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Укажите врача' : null,
-              ),
-              const SizedBox(height: 15),
-              TextFormField(
-                controller: _shortDescController,
-                cursorColor: accent,
-                decoration: InputDecoration(
-                  labelText: 'Короткое описание',
-                  labelStyle: TextStyle(
-                      color: accent.withOpacity(0.5),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 22),
-                  enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: accent, width: 1.5)),
-                  floatingLabelStyle: TextStyle(
-                    color: accent,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: accent,
-                      width: 4.0,
-                    ),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: accent, width: 1),
-                  ),
-                  filled: false,
-                ),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Введите описание' : null,
-              ),
-              const SizedBox(height: 15),
-              TextFormField(
-                controller: _fullDescController,
-                cursorColor: accent,
-                decoration: InputDecoration(
-                  labelText: 'Полное описание',
-                  labelStyle: TextStyle(
-                      color: accent.withOpacity(0.5),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 22),
-                  enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: accent, width: 1.5)),
-                  floatingLabelStyle: TextStyle(
-                    color: accent,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: accent,
-                      width: 4.0,
-                    ),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: accent, width: 1),
-                  ),
-                  filled: false,
-                ),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Введите описание' : null,
               ),
               const SizedBox(height: 15),
               Row(
                 children: [
                   Expanded(
-                    child: TextFormField(
-                      controller: _photoNameController,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        labelText: 'Имя файла фото (jpg)',
-                        labelStyle: TextStyle(
-                            color: accent.withOpacity(0.5),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 22),
-                        enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: accent, width: 1.5)),
-                        floatingLabelStyle: TextStyle(
-                          color: accent,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                    child: OutlinedButton.icon(
+                      style: ButtonStyle(
+                        side: MaterialStateProperty.all(
+                          BorderSide(color: accent, width: 2),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: accent,
-                            width: 4.0,
-                          ),
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: accent, width: 1),
-                        ),
-                        filled: false,
                       ),
-                      validator: (v) =>
-                          _photoFile == null ? 'Выберите jpg-файл' : null,
+                      icon: Icon(Icons.image, color: accent),
+                      label: Text(
+                          _photoFile != null ? 'Фото выбрано' : 'Выбрать фото',
+                          style: TextStyle(color: accent)),
+                      onPressed: _pickPhoto,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: _pickPhoto,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accent,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text('Фото'),
                   ),
                 ],
               ),
+              if (_photoFile != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxHeight: 200,
+                    ),
+                    child: Image.file(_photoFile!),
+                  ),
+                ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _submit,

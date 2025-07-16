@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"first_aid_companion/models"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // APIResponse represents a standard API response structure.
@@ -102,8 +104,8 @@ func GenerateJWT(userID, email string) (string, error) {
 
 // ParseJWT parses and validates a JWT token string, returning the Claims if valid.
 func ParseJWT(tokenStr string) (*Claims, error) {
-	claims := &Claims{}
-	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+	claims := Claims{}
+	token, err := jwt.ParseWithClaims(tokenStr, &claims, func(token *jwt.Token) (interface{}, error) {
 		// Provide the secret key for verification
 		return []byte(jwtKey), nil
 	})
@@ -112,7 +114,7 @@ func ParseJWT(tokenStr string) (*Claims, error) {
 		return nil, fmt.Errorf("invalid token: %v", err)
 	}
 
-	return claims, nil
+	return &claims, nil
 }
 
 // ExtractTokenFromHeader extracts the JWT token string from the Authorization header.
@@ -132,19 +134,25 @@ func ExtractTokenFromHeader(r *http.Request) (string, error) {
 }
 
 // GetUserFromContext retrieves the user ID from the request context, returning an error if not found.
-func GetUserFromContext(ctx context.Context) (int, error) {
+func GetUserFromContext(ctx context.Context, db *gorm.DB) (int, string, error) {
 	claims, ok := ctx.Value("user").(*Claims)
 	if !ok || claims == nil {
-		return 0, errors.New("no user in context")
+		return 0, "", errors.New("no user in context")
 	}
 
 	id, err := strconv.Atoi(claims.UserID)
 	if err != nil {
 		log.Printf("Error parsing user ID from context: %v", err)
-		return 0, err
+		return 0, "", err
 	}
 
-	return id, nil
+	var user models.User
+	err = db.Table("users").Where("email = ?", claims.Email).First(&user).Error
+	if err != nil {
+		return 0, "", err
+	}
+
+	return id, claims.Email, nil
 }
 
 // Custom time to suit flutter format
