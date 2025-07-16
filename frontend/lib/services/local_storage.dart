@@ -75,6 +75,7 @@ class LocalStorage {
     await prefs.remove(_chronic);
   }
 
+  // В классе LocalStorage измените метод updateAuthData:
   static Future<bool> updateAuthData(Map<String, dynamic> newData) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -85,6 +86,21 @@ class LocalStorage {
         return false;
       }
 
+      // Сначала сохраняем локально
+      if (newData['blood_type'] != null) {
+        await prefs.setString(_blood, newData['blood_type']);
+      }
+      if (newData['passport'] != null) {
+        await prefs.setString(_passport, newData['passport']);
+      }
+      if (newData['snils'] != null) {
+        await prefs.setString(_snils, newData['snils']);
+      }
+      if (newData['chronic_cond'] != null) {
+        await prefs.setString(_chronic, newData['chronic_cond']);
+      }
+
+      // Затем отправляем на сервер
       print('Sending update to server: $newData');
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/me'),
@@ -96,31 +112,8 @@ class LocalStorage {
       );
 
       print('Server response: ${response.statusCode} ${response.body}');
-      if (response.statusCode != 200) {
-        return false;
-      }
 
-      final updatedResponse = await http.get(
-        Uri.parse('$_baseUrl/auth/me'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      if (updatedResponse.statusCode != 200) {
-        print('Failed to fetch updated data');
-        return false;
-      }
-
-      final updatedData = jsonDecode(updatedResponse.body);
-      print('Updated data from server: $updatedData');
-
-      await prefs.setString(_name, updatedData['name'] ?? '');
-      await prefs.setString(_email, updatedData['email'] ?? '');
-      await prefs.setString(_snils, updatedData['snils'] ?? '');
-      await prefs.setString(_passport, updatedData['passport'] ?? '');
-      await prefs.setString(_blood, updatedData['blood_type'] ?? '');
-      await prefs.setString(_chronic, updatedData['chronic_cond'] ?? '');
-
-      return true;
+      return response.statusCode == 200;
     } catch (e) {
       print('Error updating auth data: $e');
       return false;

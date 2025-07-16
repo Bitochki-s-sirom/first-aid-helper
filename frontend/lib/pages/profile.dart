@@ -70,10 +70,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _loadUserData() async {
     try {
-      print('Loading user data...');
       final authData = await LocalStorage.getAuthData();
-      print('Loaded auth data: $authData');
-
       if (mounted) {
         setState(() {
           firstName = authData?['name'] ?? 'Гость';
@@ -83,17 +80,18 @@ class _ProfilePageState extends State<ProfilePage> {
           pass = authData?['passport'] ?? 'не указан';
           snils = authData?['snils'] ?? 'не указан';
 
+          // Обновляем контроллеры
           _bloodController.text = blood;
           _passController.text = pass;
           _snilsController.text = snils;
           _chronicController.text = chronic;
 
+          // Обновляем оригинальные значения
           _originalBlood = blood;
           _originalPass = pass;
           _originalSnils = snils;
           _originalChronic = chronic;
         });
-        print('State updated with new data');
       }
     } catch (e) {
       print('Error loading user data: $e');
@@ -177,7 +175,13 @@ class _ProfilePageState extends State<ProfilePage> {
                         }
 
                         await onSave();
-                        await _loadUserData();
+
+                        setState(() {
+                          _originalBlood = blood;
+                          _originalPass = pass;
+                          _originalSnils = snils;
+                        });
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             width: 268,
@@ -291,32 +295,43 @@ class _ProfilePageState extends State<ProfilePage> {
                       ? () async {
                           setState(() {
                             chronic = _chronicController.text;
+                            _originalChronic = chronic;
                           });
-                          await LocalStorage.updateAuthData({
+
+                          bool success = await LocalStorage.updateAuthData({
                             'blood_type': _bloodController.text,
                             'passport': _passController.text,
                             'snils': _snilsController.text,
                             'chronic_cond': _chronicController.text,
                           });
-                          await _loadUserData();
-                          FocusScope.of(context).unfocus();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              width: 268,
-                              content: Center(
-                                child: Text(
-                                  'Изменения сохранены',
-                                  style: TextStyle(color: kSidebarIconColor),
+
+                          if (success) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                width: 268,
+                                content: Center(
+                                  child: Text(
+                                    'Изменения сохранены',
+                                    style: TextStyle(color: kSidebarIconColor),
+                                  ),
                                 ),
+                                duration: Duration(seconds: 2),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                backgroundColor: kSidebarActiveColor,
                               ),
-                              duration: Duration(seconds: 2),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Ошибка сохранения'),
+                                backgroundColor: Colors.red,
                               ),
-                              backgroundColor: kSidebarActiveColor,
-                            ),
-                          );
+                            );
+                          }
+                          FocusScope.of(context).unfocus();
                         }
                       : null,
                 ),
