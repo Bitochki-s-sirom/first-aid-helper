@@ -36,7 +36,7 @@ func (ds *DocumentService) Documents(w http.ResponseWriter, r *http.Request) {
 	userID, _, err := GetUserFromContext(r.Context(), ds.DB.DB)
 	if err != nil {
 		log.Printf("Error fetching user: %v", err)
-		WriteError(w, 500, "database error")
+		WriteError(w, 401, "database error")
 		return
 	}
 
