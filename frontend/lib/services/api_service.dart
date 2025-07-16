@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import '../config/config.dart';
 
 class ApiService {
-  static const String _baseUrl = 'http://localhost:8080';
+  static final String _baseUrl = Config.apiBaseUrl;
 
   static Future<bool> validateToken(String token) async {
     try {
@@ -241,12 +242,9 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        // Исправление: обработка структуры ответа сервера
         if (data is Map && data.containsKey('data') && data['data'] is List) {
           return (data['data'] as List).cast<Map<String, dynamic>>();
-        }
-        // Если ответ не содержит поле 'data', но является массивом
-        else if (data is List) {
+        } else if (data is List) {
           return data.cast<Map<String, dynamic>>();
         }
 
@@ -288,7 +286,6 @@ class ApiService {
         docToSend.remove('file_data');
       }
 
-      // Создаем запрос
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/documents/add'),
         headers: {

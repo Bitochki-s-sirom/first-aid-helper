@@ -407,7 +407,6 @@ class ChatMessageWidget extends StatelessWidget {
   }
 }
 
-/// Виджет для "печати" markdown текста буква за буквой
 class AnimatedMarkdownText extends StatefulWidget {
   final String text;
   final Duration duration;
