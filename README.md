@@ -118,52 +118,24 @@ More detailed information about structure can be found <a href="#structure">here
 - PostgreSQL 12+
 
 
-### Backend Setup
+### Setup
 
 1. Clone the repository:
 ```bash
 git clone https://github.com/Bitochki-s-sirom/first-aid-helper.git
-cd first-aid-helper/backend
 ```
 
 2. Set up environment variables:
 ```bash
 touch .env
 ```
-Add GEMINI_API_KEY and DSN. For details contact the development team.
+Add GEMINI_API_KEY and API_URL (backend url, like "http://localhost:8080"). For details contact the development team.
 
-3. Install dependencies:
+3. Run docker compose
 ```bash
-go mod download
+sudo -E docker compose up -d --build
 ```
 
-4. Start the server:
-```bash
-go run main.go
-```
-
-### Flutter setup
-
-1. Navigate to frontend directory:
-```bash
-cd ../frontend
-```
-
-2. Install dependencies:
-```bash
-flutter pub get
-```
-
-3. Configure API endpoint:
-```bash
-# Edit lib/src/utils/constants.dart
-const String API_BASE_URL = "http://localhost:8080";
-```
-
-4. Run the application:
-```bash
-flutter run
-```
 <p align="right">(<a href="#readme-top">🔝 back to top</a>)</p>
 
 ---
