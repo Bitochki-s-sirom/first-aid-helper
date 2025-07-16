@@ -1,6 +1,8 @@
 # Development stage for Flutter web
 FROM ubuntu:22.04 AS development
 
+# ARG API_URL=localhost
+
 # Install dependencies
 RUN apt-get update && apt-get install -y \
     curl \
@@ -43,7 +45,7 @@ CMD ["flutter", "run", "-d", "web-server", "--web-port", "3000", "--web-hostname
 FROM development AS builder
 
 # Build for web
-RUN flutter build web --release
+RUN flutter build web --release --dart-define API_URL=$API_URL
 
 # Production stage with nginx
 FROM nginx:alpine AS production

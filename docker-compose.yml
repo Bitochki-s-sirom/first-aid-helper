@@ -14,12 +14,14 @@ services:
 
   frontend:
     image: flutter-frontend:latest
-    build: ./frontend
+    build: 
+      context: ./frontend
+      args:
+      - API_URL=${API_URL}
     ports:
       - "80:80"
     container_name: frontend
-    environment:
-      - API_URL=${API_URL}
+    
     depends_on:
       - backend
 
