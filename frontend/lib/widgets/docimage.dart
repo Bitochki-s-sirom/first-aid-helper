@@ -19,13 +19,11 @@ Widget buildDocumentImage(
 
   try {
     if (fileData is String) {
-      // Handle base64 encoded image
       if (fileData.startsWith('data:image')) {
         final base64Data = fileData.split(',').last;
         return _buildImageFromBase64(base64Data, finalWidth, finalHeight, fit);
       }
 
-      // Assume it's raw base64 data
       if (fileData.length > 100) {
         return _buildImageFromBase64(fileData, finalWidth, finalHeight, fit);
       }
@@ -37,6 +35,9 @@ Widget buildDocumentImage(
         width: finalWidth,
         height: finalHeight,
         fit: fit,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildPlaceholder(Icons.broken_image, finalWidth, finalHeight);
+        },
       );
     }
 

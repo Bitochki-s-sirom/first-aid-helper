@@ -241,20 +241,38 @@ class _DocumentsPageState extends State<DocumentsPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 24),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                        _showFullScreenImage(doc['file_data']);
-                      },
-                      child: Hero(
-                        tag: 'image_${doc['id']}',
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxHeight: MediaQuery.of(context).size.height * 0.4,
-                            maxWidth: MediaQuery.of(context).size.width * 0.8,
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: IconButton(
+                        icon: Icon(Icons.close, color: Colors.grey[600]),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Center(
+                      child: GestureDetector(
+                        onTap: () =>
+                            _showFullScreenImage(doc['file_data'], doc['id']),
+                        child: Hero(
+                          tag: 'image_${doc['id']}',
+                          child: Container(
+                            constraints: BoxConstraints(
+                              maxHeight:
+                                  MediaQuery.of(context).size.height * 0.5,
+                              maxWidth: MediaQuery.of(context).size.width * 0.8,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.grey[200],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: buildDocumentImage(
+                                doc['file_data'],
+                                fit: BoxFit.contain,
+                              ),
+                            ),
                           ),
-                          child: buildDocumentImage(doc['file_data']),
                         ),
                       ),
                     ),
@@ -283,26 +301,39 @@ class _DocumentsPageState extends State<DocumentsPage> {
     );
   }
 
-  void _showFullScreenImage(dynamic fileData) {
+  void _showFullScreenImage(dynamic fileData, dynamic docId) {
     Navigator.of(context).push(
-      PageRouteBuilder(
-        opaque: false,
-        pageBuilder: (BuildContext context, _, __) {
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) {
           return Scaffold(
-            backgroundColor: Colors.black.withOpacity(0.8),
+            backgroundColor: Colors.black87,
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              automaticallyImplyLeading: false,
+              actions: [
+                IconButton(
+                  icon: Icon(Icons.close, color: Colors.white, size: 30),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
             body: Center(
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
+              child: InteractiveViewer(
+                panEnabled: true,
+                minScale: 0.5,
+                maxScale: 4.0,
                 child: Hero(
-                  tag: 'image_${fileData.hashCode}',
-                  child: InteractiveViewer(
-                    panEnabled: true,
-                    minScale: 0.5,
-                    maxScale: 4.0,
+                  tag: 'image_$docId',
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width,
+                      maxHeight: MediaQuery.of(context).size.height * 0.8,
+                    ),
                     child: buildDocumentImage(
                       fileData,
-                      width: MediaQuery.of(context).size.width * 0.9,
-                      height: MediaQuery.of(context).size.height * 0.8,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),
@@ -506,19 +537,22 @@ class _DocumentsPageState extends State<DocumentsPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Center(
-                            child: Container(
-                              height: 110,
-                              constraints: BoxConstraints(
-                                maxWidth:
-                                    MediaQuery.of(context).size.width * 0.3,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                color: Colors.grey[200],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: buildDocumentImage(doc['file_data']),
+                            child: Hero(
+                              tag: 'image_${doc['id']}',
+                              child: Container(
+                                height: 150,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  color: Colors.grey[200],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: buildDocumentImage(
+                                    doc['file_data'],
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
