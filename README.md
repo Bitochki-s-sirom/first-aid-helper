@@ -29,6 +29,7 @@
   <ul>
     <li><a href="#overview">Overview</a></li>
     <li><a href="#features">Features</a></li>
+    <li><a href="#screenshots">Screenshots</a></li>
     <li><a href="#team">Team</a></li>
     <li><a href="#architecture">Architecture</a></li>
     <li><a href="#getting-started">Getting Started</a></li>
@@ -64,6 +65,15 @@
 - **📱 Cross-Platform Support**: Web and mobile (iOS/Android) compatibility
 
 <p align="right">(<a href="#readme-top">🔝 back to top</a>)</p>
+
+---
+
+## <a id="screenshots"></a> Screenshots
+Here are some screenshots showing the application in action:
+
+| Screenshot 1  | Screenshot 2  | Screenshot 3  | Screenshot 4  |
+|:-------------:|:-------------:|:-------------:|:-------------:|
+| ![Screenshot1](./images/profile.jpg) | ![Screenshot2](./images/chat.jpg) | ![Screenshot3](./images/documents.jpg) | ![Screenshot4](./images/rename.jpg) |
 
 ---
 
