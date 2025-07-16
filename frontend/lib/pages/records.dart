@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'dart:typed_data';
 import 'dart:convert';
+import 'package:photo_view/photo_view.dart';
 
 class DocumentsPage extends StatefulWidget {
   const DocumentsPage({super.key});
@@ -272,7 +273,7 @@ class _DocumentsPageState extends State<DocumentsPage> {
                                 tag: 'image_${doc['id']}',
                                 child: buildDocumentImage(
                                   doc['file_data'],
-                                  fit: BoxFit.contain,
+                                  fit: BoxFit.cover,
                                 ),
                               ),
                             ),
@@ -322,35 +323,40 @@ class _DocumentsPageState extends State<DocumentsPage> {
         fullscreenDialog: true,
         builder: (context) {
           return Scaffold(
-            backgroundColor: Colors.black87,
+            backgroundColor: Colors.black,
             appBar: AppBar(
               backgroundColor: Colors.transparent,
               elevation: 0,
               automaticallyImplyLeading: false,
               actions: [
                 IconButton(
-                  icon: Icon(Icons.close, color: Colors.white, size: 30),
+                  icon: const Icon(Icons.close, color: Colors.white, size: 30),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
             body: Center(
-              child: InteractiveViewer(
-                panEnabled: true,
-                minScale: 0.5,
-                maxScale: 4.0,
-                boundaryMargin: EdgeInsets.all(20),
-                child: Hero(
-                  tag: 'image_$docId',
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 2,
-                      maxHeight: MediaQuery.of(context).size.height * 1.6,
+              child: PhotoView(
+                imageProvider: MemoryImage(base64Decode(fileData)),
+                minScale: PhotoViewComputedScale.contained,
+                maxScale: PhotoViewComputedScale.covered * 4.0,
+                backgroundDecoration: const BoxDecoration(color: Colors.black),
+                loadingBuilder: (context, event) => Center(
+                  child: SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: CircularProgressIndicator(
+                      value: event == null
+                          ? 0
+                          : event.cumulativeBytesLoaded /
+                              event.expectedTotalBytes!,
                     ),
-                    child: buildDocumentImage(
-                      fileData,
-                      fit: BoxFit.contain,
-                    ),
+                  ),
+                ),
+                errorBuilder: (context, error, stackTrace) => Center(
+                  child: Text(
+                    'Ошибка загрузки изображения',
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               ),
